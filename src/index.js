@@ -11,7 +11,7 @@ const telegram = new Telegram(process.env.TELEGRAM_TOKEN, {
     ...(process.env.TELEGRAM_PROXY ? {agent: new HttpsProxyAgent(process.env.TELEGRAM_PROXY)} : {})
   }})
 
-vk.addEventListener('message', (msg, ctx) => {
+vk.addEventListener('message', (provider, msg, ctx) => {
   if (ctx.message.from_id < 1) {
     // Do not answer to bot messages
     return
@@ -19,6 +19,6 @@ vk.addEventListener('message', (msg, ctx) => {
   telegram.sendMessage(321422789, msg)
 })
 
-telegram.addEventListener('message', (msg, ctx) => {
+telegram.addEventListener('message', (provider, msg, ctx) => {
   vk.sendMessage(2000000001, msg)
 })

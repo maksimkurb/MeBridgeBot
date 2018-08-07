@@ -4,6 +4,7 @@ export default class BaseProvider {
     this.eventListeners = {
       message: []
     }
+    this.onMessage = this.onMessage.bind(this)
   }
 
   addEventListener (type, listener) {
@@ -19,5 +20,12 @@ export default class BaseProvider {
         this.eventListeners[type].splice(idx, 1)
       }
     }
+  }
+
+  async onMessage (ctx) {
+    const msg = await this.extractMessage(ctx)
+    this.eventListeners.message.forEach(cb => {
+      cb(this.PROVIDER, msg, ctx)
+    })
   }
 }
