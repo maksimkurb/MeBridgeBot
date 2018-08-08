@@ -5,8 +5,24 @@
   "main": "lib/index.js",
   "scripts": {
     "start": "babel-watch src/index.js",
-    "build": "babel src --out-dir lib --source-maps",
+    "build": "babel src/ --out-dir lib --source-maps",
+    "prepublish": "npm run build",
+    "lint": "eslint src/ --ext .js --fix",
     "test": "jest"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js}": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "bin": {
+    "meBridgeBot": "./lib/index.js"
   },
   "repository": {
     "type": "git",
@@ -34,14 +50,18 @@
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
+    "babel-eslint": "^8.2.6",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-preset-env": "^1.7.0",
     "babel-watch": "^2.0.7",
     "eslint": "^5.3.0",
-    "eslint-config-standard": "^11.0.0",
+    "eslint-config-prettier": "^2.9.0",
     "eslint-plugin-import": "^2.13.0",
     "eslint-plugin-node": "^7.0.1",
+    "eslint-plugin-prettier": "^2.6.2",
     "eslint-plugin-promise": "^3.8.0",
-    "eslint-plugin-standard": "^3.1.0"
+    "husky": "^1.0.0-rc.13",
+    "lint-staged": "^7.2.0",
+    "prettier": "1.14.1"
   }
 }

@@ -1,9 +1,9 @@
-import randomString from 'crypto-random-string'
-import { Op, Chat, Connection } from './db'
+import randomString from "crypto-random-string";
+import { Op, Chat, Connection } from "./db";
 
-export const LRU_CACHE_MAXAGE = 10 * 60 * 60 * 1000
+export const LRU_CACHE_MAXAGE = 10 * 60 * 60 * 1000;
 
-export async function getChat (provider, originChatId, chatTitle) {
+export async function getChat(provider, originChatId, chatTitle) {
   const chat = await Chat.findOrCreate({
     where: {
       provider,
@@ -12,59 +12,58 @@ export async function getChat (provider, originChatId, chatTitle) {
     defaults: {
       chatTitle
     }
-  })
-  return chat[0]
+  });
+  return chat[0];
 }
 
-export async function createConnection (chat) {
+export async function createConnection(chat) {
   const chatConnection = await Connection.create({
     key: randomString(20)
-  })
-  await chatConnection.setLeftChat(chat)
-  return `${chatConnection.id}!${chatConnection.key}`
+  });
+  await chatConnection.setLeftChat(chat);
+  return `${chatConnection.id}!${chatConnection.key}`;
 }
 
-export async function findConnection (id) {
+export async function findConnection(id) {
   return Connection.findOne({
     where: {
       id
     }
-  })
+  });
 }
 
-export async function findConnectionsForChatId (chatId, activeOnly = true) {
+export async function findConnectionsForChatId(chatId, activeOnly = true) {
   const clause = [
-    {[Op.or]: [
-      { leftChatId: chatId },
-      { rightChatId: chatId }
-    ]}
-  ]
+    {
+      [Op.or]: [{ leftChatId: chatId }, { rightChatId: chatId }]
+    }
+  ];
   if (activeOnly) {
     clause.push({
       direction: {
-        [Op.ne]: 'NONE'
+        [Op.ne]: "NONE"
       }
-    })
+    });
     clause.push({
-      leftChatId: {[Op.ne]: null}
-    })
+      leftChatId: { [Op.ne]: null }
+    });
     clause.push({
-      rightChatId: {[Op.ne]: null}
-    })
+      rightChatId: { [Op.ne]: null }
+    });
   }
   return Connection.findAll({
     include: [
       {
         model: Chat,
-        as: 'leftChat'
+        as: "leftChat"
       },
       {
         model: Chat,
-        as: 'rightChat'
+        as: "rightChat"
       }
     ],
     where: {
       [Op.and]: clause
     }
-  })
+  });
 }
