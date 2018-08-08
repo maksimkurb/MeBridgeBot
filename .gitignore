@@ -2,3 +2,4 @@ node_modules/
 .envrc
 lib/
 yarn-error.log
+myBridgeBot.db

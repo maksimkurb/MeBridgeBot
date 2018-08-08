@@ -5,6 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "start": "babel-watch src/index.js",
+    "build": "babel src --out-dir lib --source-maps",
     "test": "jest"
   },
   "repository": {
