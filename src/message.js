@@ -6,16 +6,17 @@ class Message {
 
     if (!props.originChatId) throw new Error('OriginChatId is required for a message')
     this.originChatId = props.originChatId
-    this.originChatType = props.originChatType || null
 
     if (!props.originSenderId) throw new Error('OriginSenderId is required for a message')
     this.originSenderId = props.originSenderId
 
-    this.fullname = props.fullname
-    this.url = props.url
-    this.text = props.text
-    this.attachments = props.attachments
-    this.date = props.date
+    this.chatTitle = props.chatTitle || `#${this.originChatId}`
+    this.fullname = props.fullname || null
+    this.username = props.username || null
+    this.url = props.url || null
+    this.text = props.text || null
+    this.attachments = props.attachments || []
+    this.date = props.date || null
   }
 }
 
