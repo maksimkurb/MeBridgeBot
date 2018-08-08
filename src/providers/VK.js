@@ -9,24 +9,20 @@ class VK extends BaseProvider {
     super()
 
     this.fullnamesCache = {}
-    this.fetchUsername = this.fetchUsername.bind(this)
-    this.extractMessage = this.extractMessage.bind(this)
-    this._callback = this._callback.bind(this)
 
     this.PROVIDER = 'vk'
     this.api = new VKApi({
       token,
       group_id: groupId
     })
-    this.api.use(this._callback)
+    this.api.command('/start', this.performConnectionFromLeft)
+    this.api.command('/connect', this.performConnectionToRight)
+    this.api.use((ctx) => {
+      if (ctx.message.type === 'message_new') {
+        this.onMessage(ctx)
+      }
+    })
     this.api.startPolling()
-  }
-
-  _callback (ctx) {
-    switch (ctx.message.type) {
-      case 'message_new':
-        return this.onMessage(ctx)
-    }
   }
 
   fetchUsername (ctx) {
@@ -69,10 +65,9 @@ class VK extends BaseProvider {
   }
 
   sendMessage (chatId, message) {
-    if (!(message instanceof Message)) throw new Error('message argument in sendMessage() must be an instance of Message class')
     return this.execute('messages.send', {
       peer_id: chatId,
-      message: formatForVk(message)
+      message: (message instanceof Message) ? formatForVk(message) : message
     })
   }
 }

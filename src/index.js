@@ -1,7 +1,10 @@
 import HttpsProxyAgent from 'https-proxy-agent'
+import './db'
 
 import VK from './providers/VK'
 import Telegram from './providers/Telegram'
+
+export const BOT_NAME = process.env.BOT_NAME || 'MeBridgeBot'
 
 const vk = new VK(process.env.VK_TOKEN, process.env.VK_GROUP_ID)
 

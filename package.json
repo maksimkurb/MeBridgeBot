@@ -22,9 +22,11 @@
   },
   "homepage": "https://github.com/maksimkurb/MeBridgeBot#readme",
   "dependencies": {
+    "crypto-random-string": "^1.0.0",
     "https-proxy-agent": "^2.2.1",
     "node-vk-bot-api": "2",
     "sequelize": "^4.38.0",
+    "sqlite3": "^4.0.2",
     "telegraf": "^3.22.1"
   },
   "devDependencies": {

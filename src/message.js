@@ -6,6 +6,7 @@ class Message {
 
     if (!props.originChatId) throw new Error('OriginChatId is required for a message')
     this.originChatId = props.originChatId
+    this.originChatType = props.originChatType || null
 
     if (!props.originSenderId) throw new Error('OriginSenderId is required for a message')
     this.originSenderId = props.originSenderId

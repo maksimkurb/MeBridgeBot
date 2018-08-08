@@ -8,7 +8,7 @@ class Telegram extends BaseProvider {
   constructor (token, options) {
     super()
 
-    this.PROVIDER = 'telegram'
+    this.PROVIDER = 'tg'
     this.api = new Telegraf(token, options)
     this.api.on('message', this.onMessage)
     this.api.startPolling()
@@ -28,8 +28,7 @@ class Telegram extends BaseProvider {
   }
 
   sendMessage (chatId, message) {
-    if (!(message instanceof Message)) throw new Error('message argument in sendMessage() must be an instance of Message class')
-    return this.api.telegram.sendMessage(chatId, formatForTelegram(message), {
+    return this.api.telegram.sendMessage(chatId, (message instanceof Message) ? formatForTelegram(message) : message, {
       parse_mode: 'HTML'
     })
   }
