@@ -2,7 +2,7 @@ import Sequelize from "sequelize";
 
 const db = new Sequelize("", "", "", {
   dialect: "sqlite",
-  storage: "myBridgeBot.db",
+  storage: process.env.DB_FILE || "meBridgeBot.db",
   operatorsAliases: false,
   logging: false
 });

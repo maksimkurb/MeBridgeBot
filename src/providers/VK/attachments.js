@@ -67,7 +67,6 @@ export async function extractAttachments(ctx, msg) {
         );
         break;
       case "link":
-        console.log(mAt.link);
         attachments.push(
           new Attachment({
             type: AttachmentTypes.LINK,
