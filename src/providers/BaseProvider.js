@@ -15,7 +15,6 @@ export default class BaseProvider {
     this.eventListeners = {
       message: []
     };
-    this.onMessage = this.onMessage.bind(this);
     this.cmdConnectionFromLeft = this.cmdConnectionFromLeft.bind(this);
     this.cmdConnectionToRight = this.cmdConnectionToRight.bind(this);
     this.cmdList = this.cmdList.bind(this);
@@ -37,10 +36,9 @@ export default class BaseProvider {
     }
   }
 
-  async onMessage(ctx) {
-    const msg = await this.extractMessage(ctx);
+  messageReceived(msg) {
     this.eventListeners.message.forEach(cb => {
-      cb(this.PROVIDER, msg, ctx);
+      cb(this.PROVIDER, msg);
     });
   }
 
@@ -127,13 +125,13 @@ export default class BaseProvider {
       connections.map(async (con, i) => {
         const left = con.leftChatId
           ? con.leftChatId === chat.id
-            ? `[${con.leftChat.chatTitle}]`
-            : con.leftChat.chatTitle
+            ? `📍[${con.leftChat.provider}] ${con.leftChat.chatTitle}`
+            : `[${con.leftChat.provider}] ${con.leftChat.chatTitle}`
           : "<NONE>";
         const right = con.rightChatId
           ? con.rightChatId === chat.id
-            ? `[${con.rightChat.chatTitle}]`
-            : con.rightChat.chatTitle
+            ? `[${con.rightChat.provider}] ${con.rightChat.chatTitle} 📍`
+            : `[${con.rightChat.provider}] ${con.rightChat.chatTitle}`
           : "<NONE>";
         return `${i + 1}. ${left} <--> ${right} /disconnect_${con.id}`;
       })

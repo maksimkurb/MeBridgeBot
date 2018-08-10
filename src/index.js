@@ -7,7 +7,7 @@ import { getChat, findConnectionsForChatId } from "./utils";
 import VK from "./providers/VK";
 import Telegram from "./providers/Telegram";
 
-export const BOT_NAME = process.env.BOT_NAME || "mbot";
+export const BOT_NAME = process.env.BOT_NAME || "MeBridgeBot";
 export const services = {};
 Raven.config(process.env.SENTRY_DSN || null).install();
 
@@ -15,6 +15,7 @@ Raven.context(() => {
   const vk = new VK(process.env.VK_TOKEN, process.env.VK_GROUP_ID);
 
   const telegram = new Telegram(process.env.TELEGRAM_TOKEN, {
+    username: BOT_NAME,
     telegram: {
       apiRoot: process.env.TELEGRAM_API_ROOT || "https://api.telegram.org",
       ...(process.env.TELEGRAM_PROXY
@@ -25,11 +26,12 @@ Raven.context(() => {
 
   const enabledServices = [vk, telegram];
 
-  async function onMessage(provider, msg, ctx) {
+  async function onMessage(provider, msg) {
     const chat = await getChat(provider, msg.originChatId);
     const connections = await findConnectionsForChatId(chat.id);
 
     connections.forEach(async con => {
+      const message = msg.clone();
       let resultChat;
       if (con.leftChatId === chat.id) {
         resultChat = await con.getRightChat();
@@ -37,7 +39,7 @@ Raven.context(() => {
         resultChat = await con.getLeftChat();
       }
 
-      services[resultChat.provider].sendMessage(resultChat.chatId, msg);
+      services[resultChat.provider].sendMessage(resultChat.chatId, message);
     });
   }
 

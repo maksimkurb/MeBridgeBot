@@ -1,10 +1,11 @@
 import Telegraf from "telegraf";
 import LRU from "lru";
-import { LRU_CACHE_MAXAGE } from "../utils";
+import { LRU_CACHE_MAXAGE } from "../../utils";
 
-import BaseProvider from "./BaseProvider.js";
-import { format } from "../format.js";
-import Message from "../message.js";
+import BaseProvider from "../BaseProvider.js";
+import { format } from "../../format.js";
+import { Message, AttachmentTypes } from "../../message.js";
+import { extractAttachments, sendWithAttachments } from "./attachments";
 
 class Telegram extends BaseProvider {
   constructor(token, options) {
@@ -21,7 +22,10 @@ class Telegram extends BaseProvider {
     this.api.command("connect", this.cmdConnectionToRight);
     this.api.command("list", this.cmdList);
     this.api.hears(/^\/disconnect[_ ]\d+/, this.cmdDisconnect);
-    this.api.on("message", this.onMessage);
+    this.api.on("message", async ctx => {
+      const msg = await this.extractMessage(ctx);
+      this.messageReceived(msg);
+    });
     this.api.startPolling();
   }
 
@@ -54,16 +58,40 @@ class Telegram extends BaseProvider {
             username: msg.from.username
           }
         : {}),
-      text: msg.text,
+      text: msg.text || msg.caption,
+      meta: {
+        id: msg.message_id,
+        mediaGroup: msg.media_group_id
+      },
+      attachments: await extractAttachments(ctx, msg),
       date: msg.date
     });
   }
 
-  async sendMessage(chatId, message) {
-    return this.api.telegram.sendMessage(
-      chatId,
-      message instanceof Message ? format(message) : message
-    );
+  async sendMessage(chatId, msg) {
+    if (msg instanceof Message) {
+      // Just forward if it is from TG
+      if (msg.provider === "tg") {
+        if (
+          msg.attachments.length &&
+          msg.attachments[0].type === AttachmentTypes.STICKER
+        ) {
+          msg.icon = msg.attachments[0].originInfo.emoji;
+          await this.api.telegram.sendMessage(chatId, format(msg));
+        }
+        return this.api.telegram.forwardMessage(
+          chatId,
+          msg.originChatId,
+          msg.meta.id
+        );
+      }
+      if (!msg.attachments.length) {
+        return this.api.telegram.sendMessage(chatId, format(msg));
+      }
+      return sendWithAttachments(chatId, msg, this.api.telegram);
+    }
+
+    return this.api.telegram.sendMessage(chatId, msg);
   }
 }
 
