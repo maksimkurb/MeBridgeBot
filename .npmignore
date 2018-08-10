@@ -3,3 +3,5 @@ src/
 yarn.lock
 myBridgeBot.db
 .envrc
+Dockerfile
+.babelrc

@@ -25,6 +25,7 @@ Raven.context(() => {
   });
 
   const enabledServices = [vk, telegram];
+  console.log("Bot is running...");
 
   async function onMessage(provider, msg) {
     try {

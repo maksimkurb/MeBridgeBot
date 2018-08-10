@@ -22,7 +22,7 @@
     ]
   },
   "bin": {
-    "meBridgeBot": "./lib/index.js"
+    "me-bridge-bot": "./lib/run.js"
   },
   "repository": {
     "type": "git",
