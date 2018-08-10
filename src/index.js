@@ -27,20 +27,38 @@ Raven.context(() => {
   const enabledServices = [vk, telegram];
 
   async function onMessage(provider, msg) {
-    const chat = await getChat(provider, msg.originChatId);
-    const connections = await findConnectionsForChatId(chat.id);
+    try {
+      const chat = await getChat(provider, msg.originChatId);
+      const connections = await findConnectionsForChatId(chat.id);
+      Raven.captureBreadcrumb({
+        data: {
+          fromProvider: provider,
+          fromChatId: msg.originChatId,
+          hasAttachments: msg.attachments.length > 0
+        },
+        message: "Received message",
+        category: "events",
+        level: "debug"
+      });
+      await Promise.all(
+        connections.forEach(async con => {
+          const message = msg.clone();
+          let resultChat;
+          if (con.leftChatId === chat.id) {
+            resultChat = await con.getRightChat();
+          } else {
+            resultChat = await con.getLeftChat();
+          }
 
-    connections.forEach(async con => {
-      const message = msg.clone();
-      let resultChat;
-      if (con.leftChatId === chat.id) {
-        resultChat = await con.getRightChat();
-      } else {
-        resultChat = await con.getLeftChat();
-      }
-
-      services[resultChat.provider].sendMessage(resultChat.chatId, message);
-    });
+          await services[resultChat.provider].sendMessage(
+            resultChat.chatId,
+            message
+          );
+        })
+      );
+    } catch (e) {
+      Raven.captureException(e);
+    }
   }
 
   enabledServices.forEach(svc => {

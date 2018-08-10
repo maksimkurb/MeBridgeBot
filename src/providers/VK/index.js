@@ -1,17 +1,18 @@
 import VKApi from "node-vk-bot-api";
 import LRU from "lru";
+import Raven from "raven";
 import { LRU_CACHE_MAXAGE } from "../../utils";
 
 import BaseProvider from "../BaseProvider.js";
 import Message from "../../message";
-import { format } from "../../format.js";
+import { format, formatBadge } from "../../format.js";
 import { extractAttachments, sendWithAttachments } from "./attachments";
 
 class VK extends BaseProvider {
   constructor(token, groupId) {
     super();
 
-    this.fullnamesCache = new LRU({
+    this.namesCache = new LRU({
       max: 8192,
       maxAge: LRU_CACHE_MAXAGE
     });
@@ -38,35 +39,42 @@ class VK extends BaseProvider {
     this.api.startPolling();
   }
 
-  async fetchUserInfo(ctx, userId) {
-    return new Promise(resolve => {
-      if (this.fullnamesCache.peek(userId) !== undefined) {
-        resolve(this.fullnamesCache.get(userId));
-        return;
-      }
-      ctx.bot.execute(
-        "users.get",
-        {
-          user_ids: userId,
-          name_case: "nom",
-          fields: "domain"
-        },
-        res => {
-          if (res && res[0]) {
-            const info = {
-              fullname: `${res[0].first_name} ${res[0].last_name}`,
-              domain: res[0].domain
-            };
-            this.fullnamesCache.set(userId, info);
-            resolve(info);
-          } else {
-            resolve({
-              fullname: `id${userId}`
-            });
-          }
-        }
-      );
+  async fetchUserInfo(userIds) {
+    if (userIds.length === 0) return {};
+    if (!Array.isArray(userIds)) {
+      userIds = [userIds];
+    }
+
+    const unknownIds = userIds.filter(
+      id => this.namesCache.get(id) === undefined
+    );
+
+    let res;
+    try {
+      res = await this.execute("users.get", {
+        user_ids: unknownIds.join(","),
+        name_case: "nom",
+        fields: "domain"
+      });
+    } catch (e) {
+      Raven.captureException(e);
+    }
+    if (res) {
+      res.forEach(user => {
+        this.namesCache.set(user.id, {
+          name: `${user.first_name} ${user.last_name}`,
+          domain: user.domain
+        });
+      });
+    }
+
+    const result = {};
+    userIds.forEach(id => {
+      result[id] = this.namesCache.get(id) || {
+        name: `[id${id}]`
+      };
     });
+    return result;
   }
 
   async getChatTitle(ctx, originChatId) {
@@ -95,8 +103,63 @@ class VK extends BaseProvider {
     });
   }
 
+  unwrapIds(fwdMessages, i = 0) {
+    if (i > 30) return "";
+    let ids = {};
+    fwdMessages.forEach(msg => {
+      if (msg.fwd_messages) {
+        const innerIds = this.unwrapIds(fwdMessages, i + 1);
+        Object.keys(innerIds).forEach(id => {
+          ids[id] = true;
+        });
+      }
+      ids[msg.from_id] = true;
+    });
+    return ids;
+  }
+
+  async unwrapForwarded(fwdMessages, userInfo = null, i = 0) {
+    if (i === 0) {
+      const ids = this.unwrapIds(fwdMessages);
+      userInfo = await this.fetchUserInfo(Object.keys(ids));
+    }
+    if (i > 30) return "";
+    let text = [];
+    await Promise.all(
+      fwdMessages.map(async msg => {
+        if (msg.fwd_messages) {
+          text = text.concat(
+            (await this.unwrapForwarded(msg.fwd_messages, userInfo, i + 1)).map(
+              r => `›${r}`
+            )
+          );
+        }
+        if (msg.from_id > 0) {
+          text.push(
+            `› ${formatBadge(
+              null,
+              userInfo[msg.from_id].name,
+              userInfo[msg.from_id].domain,
+              msg.date
+            )}${msg.text.length > 0 ? ":" : ""}`
+          );
+        }
+        if (msg.text.length > 0) {
+          text = text.concat(msg.text.split("\n").map(r => `› ${r}`));
+        }
+      })
+    );
+    return text;
+  }
+
   async extractMessage(ctx, needChatTitle = false) {
-    const userInfo = await this.fetchUserInfo(ctx, ctx.message.from_id);
+    const userInfo = await this.fetchUserInfo(ctx.message.from_id);
+    console.log(ctx.message);
+
+    const forwardedText = await this.unwrapForwarded(ctx.message.fwd_messages);
+    if (forwardedText.length > 0) {
+      forwardedText.push("");
+    }
     return new Message({
       provider: "vk",
       originChatId: ctx.message.peer_id,
@@ -107,28 +170,44 @@ class VK extends BaseProvider {
       meta: {
         id: ctx.message.conversation_message_id
       },
-      fullname: userInfo.fullname,
-      username: userInfo.domain,
+      fullname: userInfo[ctx.message.from_id].name,
+      username: userInfo[ctx.message.from_id].domain,
       url: `https://vk.com/id${ctx.message.from_id}`,
-      text: ctx.message.text,
+      text:
+        forwardedText.length > 0 || ctx.message.text
+          ? `${forwardedText.join("\n")}${ctx.message.text || ""}`
+          : null,
       attachments: await extractAttachments(ctx, ctx.message),
       date: ctx.message.date
     });
   }
 
   async execute(method, settings, cb) {
-    const args = Object.assign({}, { v: "5.80" }, settings);
-    if (!cb) {
-      return new Promise((resolve, reject) => {
-        this.api.execute(method, args, res => {
-          resolve(res);
+    Raven.captureBreadcrumb({
+      data: {
+        method
+      },
+      message: "Executed method",
+      category: "api",
+      level: "debug"
+    });
+    try {
+      const args = Object.assign({}, { v: "5.80" }, settings);
+      if (!cb) {
+        return new Promise((resolve, reject) => {
+          this.api.execute(method, args, res => {
+            resolve(res);
+          });
         });
-      });
+      }
+      return this.api.execute(method, args, cb);
+    } catch (e) {
+      Raven.captureException(e);
     }
-    return this.api.execute(method, args, cb);
   }
 
   async sendMessage(chatId, msg) {
+    this.captureMessageSending(chatId, msg);
     if (msg instanceof Message) {
       if (!msg.attachments.length) {
         return this.execute("messages.send", {

@@ -210,7 +210,7 @@ export async function sendWithAttachments(chatId, msg, tg) {
             caption: format(msg).substr(0, 200)
           });
         case AttachmentTypes.LINK:
-          msg.icon = "🌐";
+          msg.icon = "🔗";
           msg.text = `${at.payload.title || ""} ${at.url}`;
           return tg.sendMessage(chatId, format(msg));
         case AttachmentTypes.LOCATION:

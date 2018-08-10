@@ -44,8 +44,9 @@ export class Message {
       throw new Error("OriginSenderId is required for a message");
     this.originSenderId = props.originSenderId;
 
-    this.meta = props.meta;
     this.chatTitle = props.chatTitle || `#${this.originChatId}`;
+    this.icon = props.icon || null;
+    this.meta = props.meta || null;
     this.fullname = props.fullname || null;
     this.username = props.username || null;
     this.url = props.url || null;

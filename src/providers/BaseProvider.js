@@ -1,9 +1,11 @@
+import Raven from "raven";
 import {
   createConnection,
   findConnection,
   getChat,
   findConnectionsForChatId
 } from "../utils";
+import { Message } from "../message";
 import { Connection, Op } from "../db";
 
 export const CONNECTION_TIMEOUT = 600; // ten minutes
@@ -39,6 +41,26 @@ export default class BaseProvider {
   messageReceived(msg) {
     this.eventListeners.message.forEach(cb => {
       cb(this.PROVIDER, msg);
+    });
+  }
+
+  captureMessageSending(chatId, msg) {
+    Raven.captureBreadcrumb({
+      data: {
+        toProvider: this.PROVIDER,
+        toChatId: chatId,
+        ...(msg instanceof Message
+          ? {
+              hasAttachments: msg.attachments.length > 0,
+              withAttributes: true
+            }
+          : {
+              withAttributes: false
+            })
+      },
+      message: "Sent message",
+      category: "api",
+      level: "debug"
     });
   }
 

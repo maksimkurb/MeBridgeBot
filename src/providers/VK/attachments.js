@@ -7,6 +7,18 @@ import { resolve } from "url";
 
 export async function extractAttachments(ctx, msg) {
   const attachments = [];
+  if (msg.geo) {
+    attachments.push(
+      new Attachment({
+        type: AttachmentTypes.LOCATION,
+        originInfo: msg.geo,
+        payload: {
+          lat: msg.geo.coordinates.latitude,
+          lon: msg.geo.coordinates.longitude
+        }
+      })
+    );
+  }
   msg.attachments.forEach(mAt => {
     switch (mAt.type) {
       case "photo":
@@ -40,7 +52,6 @@ export async function extractAttachments(ctx, msg) {
         );
         break;
       case "audio":
-        // decrypt audio extra
         attachments.push(
           new Attachment({
             type: AttachmentTypes.LINK,
@@ -226,8 +237,9 @@ export async function sendWithAttachments(chatId, msg, vk) {
         msg.text = msg.text || "";
         switch (at.type) {
           case AttachmentTypes.CONTACT:
-            msg.text = `☎️ ${at.payload.firstName} ${at.payload.lastName ||
-              ""} (${at.payload.phone})\n${msg.text}`;
+            msg.text = `${at.payload.firstName} ${at.payload.lastName || ""} (${
+              at.payload.phone
+            })\n${msg.text}`;
             if (at.payload.vcard) {
               const doc = await uploadDoc(
                 vk,
@@ -239,10 +251,10 @@ export async function sendWithAttachments(chatId, msg, vk) {
             }
             break;
           case AttachmentTypes.LINK:
-            msg.text = `🌐 ${at.payload.title || ""}  ${at.url}\n${msg.text}`;
+            msg.text = `${at.payload.title || ""}  ${at.url}\n${msg.text}`;
             break;
           case AttachmentTypes.LOCATION:
-            msg.text = `🌎 ${at.payload.title || "[Location]"}\n${at.payload
+            msg.text = `${at.payload.title || "[Location]"}\n${at.payload
               .address || ""}\n${msg.text}`;
             additionalProps.lat = at.payload.lat;
             additionalProps.long = at.payload.lon;
