@@ -17,6 +17,7 @@ export default class BaseProvider {
     this.eventListeners = {
       message: []
     };
+    this.cmdStart = this.cmdStart.bind(this);
     this.cmdConnectionFromLeft = this.cmdConnectionFromLeft.bind(this);
     this.cmdConnectionToRight = this.cmdConnectionToRight.bind(this);
     this.cmdList = this.cmdList.bind(this);
@@ -64,6 +65,23 @@ export default class BaseProvider {
     });
   }
 
+  async cmdStart(ctx) {
+    const msg = await this.extractMessage(ctx);
+    this.sendMessage(
+      msg.originChatId,
+      [
+        "🔹 Hello! I am a MeBridgeBot!",
+        "I can connect multiple chats by resending messages from one to another",
+        "Firstly, make sure that this bot has access to all messages in the chat",
+        "Secondly, use /token command to get connection token",
+        "After that, use /connect <token> command in another conversation with this bot",
+        "You can list your connections by /list command",
+        "",
+        "/author <Maxim Kurbatov> maksimkurb@gmail.com, 20!8"
+      ].join("\n")
+    );
+  }
+
   /**
    * This chat is initiator of connection (left side)
    * @param {Context} ctx
@@ -105,6 +123,11 @@ export default class BaseProvider {
     }
     if (chatConnection.key !== key) {
       this.sendMessage(msg.originChatId, `🔹 Connection key is wrong 📪`);
+      return;
+    }
+
+    if (chatConnection.rightChatId) {
+      this.sendMessage(msg.originChatId, `🔹 Connection key is outdated`);
       return;
     }
 

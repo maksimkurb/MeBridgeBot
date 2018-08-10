@@ -26,7 +26,8 @@ class VK extends BaseProvider {
       token,
       group_id: groupId
     });
-    this.api.command("/start", this.cmdConnectionFromLeft);
+    this.api.command("/start", this.cmdStart);
+    this.api.command("/token", this.cmdConnectionFromLeft);
     this.api.command("/connect", this.cmdConnectionToRight);
     this.api.command("/list", this.cmdList);
     this.api.command("/disconnect", this.cmdDisconnect);
@@ -154,7 +155,6 @@ class VK extends BaseProvider {
 
   async extractMessage(ctx, needChatTitle = false) {
     const userInfo = await this.fetchUserInfo(ctx.message.from_id);
-    console.log(ctx.message);
 
     const forwardedText = await this.unwrapForwarded(ctx.message.fwd_messages);
     if (forwardedText.length > 0) {

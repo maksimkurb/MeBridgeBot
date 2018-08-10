@@ -4,7 +4,7 @@ function timestampToTime(timestamp) {
   return new Date(timestamp * 1000).toTimeString().split(" ")[0];
 }
 
-function getMessageIcon(msg) {
+export function getMessageIcon(msg) {
   if (msg.icon) {
     return msg.icon;
   }
