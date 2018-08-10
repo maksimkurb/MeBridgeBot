@@ -2,4 +2,5 @@ node_modules/
 .envrc
 lib/
 yarn-error.log
-myBridgeBot.db
+meBridgeBot.db
+ecosystem.config.js

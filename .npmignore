@@ -1,7 +1,8 @@
 src/
 .vscode/
 yarn.lock
-myBridgeBot.db
+meBridgeBot.db
 .envrc
 Dockerfile
 .babelrc
+ecosystem.config.js
