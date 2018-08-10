@@ -1,6 +1,6 @@
 {
   "name": "me-bridge-bot",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
