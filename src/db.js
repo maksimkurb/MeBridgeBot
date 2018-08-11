@@ -4,7 +4,7 @@ const db = new Sequelize("", "", "", {
   dialect: "sqlite",
   storage: process.env.DB_FILE || "meBridgeBot.db",
   operatorsAliases: false,
-  logging: false
+  logging: process.env.NODE_ENV !== "production"
 });
 export default db;
 export const Op = Sequelize.Op;
@@ -26,5 +26,7 @@ export const Connection = db.define("connection", {
 Connection.belongsTo(Chat, { as: "leftChat", foreignKey: "leftChatId" });
 Connection.belongsTo(Chat, { as: "rightChat", foreignKey: "rightChatId" });
 
-Chat.sync();
-Connection.sync();
+export async function dbSync() {
+  await Chat.sync();
+  await Connection.sync();
+}

@@ -6,12 +6,15 @@ import { getChat, findConnectionsForChatId } from "./utils";
 
 import VK from "./providers/VK";
 import Telegram from "./providers/Telegram";
+import { dbSync } from "./db";
 
 export const BOT_NAME = process.env.BOT_NAME || "MeBridgeBot";
 export const services = {};
 Raven.config(process.env.SENTRY_DSN || null).install();
 
-Raven.context(() => {
+Raven.context(async () => {
+  await dbSync();
+
   const vk = new VK(process.env.VK_TOKEN, process.env.VK_GROUP_ID);
 
   const telegram = new Telegram(process.env.TELEGRAM_TOKEN, {
