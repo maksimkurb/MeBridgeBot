@@ -48,7 +48,7 @@ Raven.context(async () => {
         level: "debug"
       });
       await Promise.all(
-        connections.forEach(async con => {
+        connections.map(async con => {
           const message = msg.clone();
           let resultChat;
           if (con.leftChatId === chat.id) {
