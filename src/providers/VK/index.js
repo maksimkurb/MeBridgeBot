@@ -4,7 +4,7 @@ const Raven = require("raven");
 const { LRU_CACHE_MAXAGE } = require("../../utils");
 
 const BaseProvider = require("../BaseProvider.js");
-const Message = require("../../message");
+const { Message } = require("../../message");
 const { format, formatBadge } = require("../../format.js");
 const { extractAttachments, sendWithAttachments } = require("./attachments");
 
