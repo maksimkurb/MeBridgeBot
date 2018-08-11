@@ -13,6 +13,11 @@ async function getChat(provider, originChatId, chatTitle) {
       chatTitle
     }
   });
+  // Update chat title if it is changed
+  if (chatTitle && chat[0].chatTitle !== chatTitle) {
+    chat[0].chatTitle = chatTitle;
+    await chat[0].save();
+  }
   return chat[0];
 }
 
