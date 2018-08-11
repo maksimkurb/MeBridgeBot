@@ -1,11 +1,11 @@
-import FormData from "form-data";
-import fetch from "node-fetch";
-import mime from "mime-types";
-import { Attachment, AttachmentTypes } from "../../message";
-import { format } from "../../format.js";
-import { resolve } from "url";
+const FormData = require("form-data");
+const fetch = require("node-fetch");
+const mime = require("mime-types");
+const { Attachment, AttachmentTypes } = require("../../message");
+const { format } = require("../../format.js");
+const { resolve } = require("url");
 
-export async function extractAttachments(ctx, msg) {
+async function extractAttachments(ctx, msg) {
   const attachments = [];
   if (msg.geo) {
     attachments.push(
@@ -187,7 +187,7 @@ async function uploadDoc(vk, chatId, filename, urlOrBuffer, type = "doc") {
   return `doc${savedDoc[0].owner_id}_${savedDoc[0].id}`;
 }
 
-export async function sendWithAttachments(chatId, msg, vk) {
+async function sendWithAttachments(chatId, msg, vk) {
   const allowedAttachment = [
     AttachmentTypes.ANIMATION,
     AttachmentTypes.AUDIO,
@@ -268,3 +268,8 @@ export async function sendWithAttachments(chatId, msg, vk) {
     ...additionalProps
   });
 }
+
+module.exports = {
+  extractAttachments,
+  sendWithAttachments
+};

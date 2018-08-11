@@ -1,21 +1,19 @@
-import Sequelize from "sequelize";
+const Sequelize = require("sequelize");
 
 const db = new Sequelize("", "", "", {
   dialect: "sqlite",
   storage: process.env.DB_FILE || "meBridgeBot.db",
   operatorsAliases: false,
-  logging: process.env.NODE_ENV !== "production"
+  logging: process.env.NODE_ENV === "production" ? false : console.log
 });
-export default db;
-export const Op = Sequelize.Op;
 
-export const Chat = db.define("chat", {
+const Chat = db.define("chat", {
   provider: Sequelize.STRING,
   chatId: Sequelize.STRING,
   chatTitle: Sequelize.STRING
 });
 
-export const Connection = db.define("connection", {
+const Connection = db.define("connection", {
   direction: {
     type: Sequelize.ENUM("TWOWAY", "TORIGHT", "TOLEFT", "NONE"),
     defaultValue: "TWOWAY"
@@ -26,7 +24,14 @@ export const Connection = db.define("connection", {
 Connection.belongsTo(Chat, { as: "leftChat", foreignKey: "leftChatId" });
 Connection.belongsTo(Chat, { as: "rightChat", foreignKey: "rightChatId" });
 
-export async function dbSync() {
+async function dbSync() {
   await Chat.sync();
   await Connection.sync();
+  console.log("DB synced");
 }
+
+module.exports = db;
+module.exports.Op = Sequelize.Op;
+module.exports.Chat = Chat;
+module.exports.Connection = Connection;
+module.exports.dbSync = dbSync;

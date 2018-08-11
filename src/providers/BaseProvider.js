@@ -1,18 +1,18 @@
-import Raven from "raven";
-import {
+const Raven = require("raven");
+const {
   createConnection,
   findConnection,
   getChat,
   findConnectionsForChatId
-} from "../utils";
-import { Message } from "../message";
-import { Connection, Op } from "../db";
+} = require("../utils");
+const { Message } = require("../message");
+const { Connection, Op } = require("../db");
 
-export const CONNECTION_TIMEOUT = 600; // ten minutes
+const CONNECTION_TIMEOUT = 600; // ten minutes
 const connectionRegexp = /^\/connect(?:@\w+)?\s+\$mbb1\$(\d+)!([a-zA-Z0-9_$]+)/;
 const disconnectionRegexp = /^\/disconnect[_ ](\d+)/;
 
-export default class BaseProvider {
+class BaseProvider {
   constructor() {
     this.eventListeners = {
       message: []
@@ -229,3 +229,6 @@ export default class BaseProvider {
     }
   }
 }
+
+module.exports = BaseProvider;
+module.exports.CONNECTION_TIMEOUT = CONNECTION_TIMEOUT;

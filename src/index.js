@@ -1,15 +1,18 @@
-import HttpsProxyAgent from "https-proxy-agent";
-import Raven from "raven";
+const HttpsProxyAgent = require("https-proxy-agent");
+const Raven = require("raven");
 
-import "./db";
-import { getChat, findConnectionsForChatId } from "./utils";
+const { dbSync } = require("./db");
+const { getChat, findConnectionsForChatId } = require("./utils");
 
-import VK from "./providers/VK";
-import Telegram from "./providers/Telegram";
-import { dbSync } from "./db";
+const VK = require("./providers/VK");
+const Telegram = require("./providers/Telegram");
 
-export const BOT_NAME = process.env.BOT_NAME || "MeBridgeBot";
-export const services = {};
+const BOT_NAME = process.env.BOT_NAME || "MeBridgeBot";
+const services = {};
+module.exports = {
+  BOT_NAME,
+  services
+};
 Raven.config(process.env.SENTRY_DSN || null).install();
 
 Raven.context(async () => {

@@ -1,11 +1,11 @@
-import Telegraf from "telegraf";
-import LRU from "lru";
-import { LRU_CACHE_MAXAGE } from "../../utils";
+const Telegraf = require("telegraf");
+const LRU = require("lru");
+const { LRU_CACHE_MAXAGE } = require("../../utils");
 
-import BaseProvider from "../BaseProvider.js";
-import { format, formatBadge } from "../../format.js";
-import { Message, AttachmentTypes } from "../../message.js";
-import { extractAttachments, sendWithAttachments } from "./attachments";
+const BaseProvider = require("../BaseProvider.js");
+const { format, formatBadge } = require("../../format.js");
+const { Message, AttachmentTypes } = require("../../message.js");
+const { extractAttachments, sendWithAttachments } = require("./attachments");
 
 class Telegram extends BaseProvider {
   constructor(token, options) {
@@ -110,4 +110,4 @@ class Telegram extends BaseProvider {
   }
 }
 
-export default Telegram;
+module.exports = Telegram;

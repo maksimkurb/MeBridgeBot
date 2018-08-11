@@ -1,10 +1,10 @@
-import { AttachmentTypes } from "./message";
+const { AttachmentTypes } = require("./message");
 
 function timestampToTime(timestamp) {
   return new Date(timestamp * 1000).toTimeString().split(" ")[0];
 }
 
-export function getMessageIcon(msg) {
+function getMessageIcon(msg) {
   if (msg.icon) {
     return msg.icon;
   }
@@ -49,7 +49,7 @@ export function getMessageIcon(msg) {
   return "💬";
 }
 
-export function formatBadge(provider, fullname, username, date) {
+function formatBadge(provider, fullname, username, date) {
   let badge = "";
   if (provider) {
     badge += `${provider}┊`;
@@ -64,7 +64,7 @@ export function formatBadge(provider, fullname, username, date) {
   return `〈 ${badge} 〉`;
 }
 
-export function format(msg) {
+function format(msg) {
   const text = msg.text !== null ? `:\n${msg.text}` : "";
   return `${getMessageIcon(msg)}${formatBadge(
     msg.provider,
@@ -73,3 +73,9 @@ export function format(msg) {
     msg.date
   )}${text}`;
 }
+
+module.exports = {
+  getMessageIcon,
+  formatBadge,
+  format
+};

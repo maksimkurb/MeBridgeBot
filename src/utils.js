@@ -1,9 +1,9 @@
-import randomString from "crypto-random-string";
-import { Op, Chat, Connection } from "./db";
+const randomString = require("crypto-random-string");
+const { Op, Chat, Connection } = require("./db");
 
-export const LRU_CACHE_MAXAGE = 10 * 60 * 60 * 1000;
+const LRU_CACHE_MAXAGE = 10 * 60 * 60 * 1000;
 
-export async function getChat(provider, originChatId, chatTitle) {
+async function getChat(provider, originChatId, chatTitle) {
   const chat = await Chat.findOrCreate({
     where: {
       provider,
@@ -16,7 +16,7 @@ export async function getChat(provider, originChatId, chatTitle) {
   return chat[0];
 }
 
-export async function createConnection(chat) {
+async function createConnection(chat) {
   const chatConnection = await Connection.create({
     key: randomString(20)
   });
@@ -24,7 +24,7 @@ export async function createConnection(chat) {
   return `${chatConnection.id}!${chatConnection.key}`;
 }
 
-export async function findConnection(id) {
+async function findConnection(id) {
   return Connection.findOne({
     where: {
       id
@@ -32,7 +32,7 @@ export async function findConnection(id) {
   });
 }
 
-export async function findConnectionsForChatId(chatId, activeOnly = true) {
+async function findConnectionsForChatId(chatId, activeOnly = true) {
   const clause = [
     {
       [Op.or]: [{ leftChatId: chatId }, { rightChatId: chatId }]
@@ -67,3 +67,11 @@ export async function findConnectionsForChatId(chatId, activeOnly = true) {
     }
   });
 }
+
+module.exports = {
+  LRU_CACHE_MAXAGE,
+  getChat,
+  createConnection,
+  findConnection,
+  findConnectionsForChatId
+};

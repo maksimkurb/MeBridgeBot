@@ -1,4 +1,4 @@
-export const AttachmentTypes = {
+const AttachmentTypes = {
   ANIMATION: "ANIMATION",
   AUDIO: "AUDIO",
   CONTACT: "CONTACT",
@@ -11,7 +11,7 @@ export const AttachmentTypes = {
   VOICE: "VOICE"
 };
 
-export class Attachment {
+class Attachment {
   constructor(props) {
     if (!AttachmentTypes[props.type]) throw new Error("Wrong attachment type");
     this.type = props.type;
@@ -31,7 +31,7 @@ export class Attachment {
   }
 }
 
-export class Message {
+class Message {
   constructor(props) {
     if (!props.provider) throw new Error("Provider is required for a message");
     this.provider = props.provider;
@@ -62,4 +62,8 @@ export class Message {
   }
 }
 
-export default Message;
+module.exports = {
+  Message,
+  Attachment,
+  AttachmentTypes
+};

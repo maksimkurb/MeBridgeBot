@@ -1,12 +1,12 @@
-import VKApi from "node-vk-bot-api";
-import LRU from "lru";
-import Raven from "raven";
-import { LRU_CACHE_MAXAGE } from "../../utils";
+const VKApi = require("node-vk-bot-api");
+const LRU = require("lru");
+const Raven = require("raven");
+const { LRU_CACHE_MAXAGE } = require("../../utils");
 
-import BaseProvider from "../BaseProvider.js";
-import Message from "../../message";
-import { format, formatBadge } from "../../format.js";
-import { extractAttachments, sendWithAttachments } from "./attachments";
+const BaseProvider = require("../BaseProvider.js");
+const Message = require("../../message");
+const { format, formatBadge } = require("../../format.js");
+const { extractAttachments, sendWithAttachments } = require("./attachments");
 
 class VK extends BaseProvider {
   constructor(token, groupId) {
@@ -225,4 +225,4 @@ class VK extends BaseProvider {
   }
 }
 
-export default VK;
+module.exports = VK;
