@@ -203,24 +203,33 @@ async function sendWithAttachments(chatId, msg, vk) {
       .map(async at => {
         const filename =
           at.filename ||
-          (at.mimeType
-            ? `${at.type}.${mime.extension(at.mimeType)}`
-            : `${at.type}.dat`);
+          (at.mimeType ? `${at.type}.${mime.extension(at.mimeType)}` : null);
         switch (at.type) {
           case AttachmentTypes.ANIMATION:
           case AttachmentTypes.DOCUMENT:
           case AttachmentTypes.VIDEO: // Uploading videos with community token is not implemented yet
-            return uploadDoc(vk, chatId, filename, at.url);
+            return uploadDoc(vk, chatId, filename || "file.dat", at.url);
 
           case AttachmentTypes.AUDIO:
-            return uploadDoc(vk, chatId, `${filename}.txt`, at.url);
+            return uploadDoc(
+              vk,
+              chatId,
+              filename ? `${filename}.txt` : "audio.mp3.txt",
+              at.url
+            );
 
           case AttachmentTypes.STICKER:
           case AttachmentTypes.PHOTO:
-            return uploadPhoto(vk, chatId, filename, at.url);
+            return uploadPhoto(vk, chatId, filename || "image.jpg", at.url);
 
           case AttachmentTypes.VOICE:
-            return uploadDoc(vk, chatId, filename, at.url, "audio_message");
+            return uploadDoc(
+              vk,
+              chatId,
+              filename || "voice.ogg",
+              at.url,
+              "audio_message"
+            );
             break;
           default:
             throw new Error(`Unsupported media type: ${at.type}`);

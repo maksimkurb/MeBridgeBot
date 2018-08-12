@@ -64,14 +64,31 @@ function formatBadge(provider, fullname, username, date) {
   return `〈 ${badge} 〉`;
 }
 
-function format(msg) {
-  const text = msg.text !== null ? `:\n${msg.text}` : "";
-  return `${getMessageIcon(msg)}${formatBadge(
-    msg.provider,
-    msg.fullname,
-    msg.username,
-    msg.date
-  )}${text}`;
+function format(msg, options) {
+  const opts = Object.assign(
+    {},
+    {
+      text: true,
+      badge: true
+    },
+    options
+  );
+  let message = "";
+
+  if (opts.badge) {
+    message = `${getMessageIcon(msg)}${formatBadge(
+      msg.provider,
+      msg.fullname,
+      msg.username,
+      msg.date
+    )}`;
+    if (opts.text) {
+      message += `:\n${msg.text}`;
+    }
+  } else if (opts.text) {
+    message = msg.text;
+  }
+  return message;
 }
 
 module.exports = {

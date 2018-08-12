@@ -49,13 +49,15 @@ async function extractAttachments(ctx, msg) {
     );
   } else if (msg.photo) {
     const photo = msg.photo[msg.photo.length - 1];
+    const url = await ctx.telegram.getFileLink(photo.file_id);
     attachments.push(
       new Attachment({
         type: AttachmentTypes.PHOTO,
         originInfo: photo,
-        url: await ctx.telegram.getFileLink(photo.file_id),
+        url,
 
         size: photo.file_size,
+        mimeType: mime.lookup(url),
         width: photo.width,
         height: photo.height
       })
@@ -165,30 +167,33 @@ async function downloadToBuffer(url) {
 }
 
 async function sendWithAttachments(chatId, msg, tg) {
-  return Promise.all(
+  await Promise.all(
     msg.attachments.map(async at => {
       const filename =
         at.filename ||
         (at.mimeType
           ? `${at.type}.${mime.extension(at.mimeType)}`
           : `${at.type}.dat`);
+
       switch (at.type) {
         case AttachmentTypes.ANIMATION:
           return tg.sendAnimation(
             chatId,
             msg.provider === "tg" ? at.originInfo.file_id : at.url,
-            { caption: format(msg).substr(0, 200) }
+            { caption: format(msg, { text: false }).substr(0, 200) }
           );
         case AttachmentTypes.AUDIO:
           return tg.sendAudio(
             chatId,
             msg.provider === "tg" ? at.originInfo.file_id : at.url,
-            { caption: format(msg).substr(0, 200) }
+            { caption: format(msg, { text: false }).substr(0, 200) }
           );
         case AttachmentTypes.CONTACT:
           msg.icon = "☎️";
           return tg
-            .sendMessage(chatId, format(msg), { disable_notification: true })
+            .sendMessage(chatId, format(msg, { text: false }), {
+              disable_notification: true
+            })
             .then(() =>
               tg.sendContact(chatId, at.payload.phone, at.payload.firstName, {
                 last_name: at.payload.lastName,
@@ -207,16 +212,18 @@ async function sendWithAttachments(chatId, msg, tg) {
             };
           }
           return tg.sendDocument(chatId, document, {
-            caption: format(msg).substr(0, 200)
+            caption: format(msg, { text: false }).substr(0, 200)
           });
         case AttachmentTypes.LINK:
           msg.icon = "🔗";
           msg.text = `${at.payload.title || ""} ${at.url}`;
-          return tg.sendMessage(chatId, format(msg));
+          return tg.sendMessage(chatId, format(msg, { text: false }));
         case AttachmentTypes.LOCATION:
           msg.icon = "🌎";
           return tg
-            .sendMessage(chatId, format(msg), { disable_notification: true })
+            .sendMessage(chatId, format(msg, { text: false }), {
+              disable_notification: true
+            })
             .then(() => {
               if (at.payload.title) {
                 return tg.sendVenue(
@@ -234,7 +241,7 @@ async function sendWithAttachments(chatId, msg, tg) {
           return tg.sendPhoto(
             chatId,
             msg.provider === "tg" ? at.originInfo.file_id : at.url,
-            { caption: format(msg).substr(0, 200) }
+            { caption: format(msg, { text: false }).substr(0, 200) }
           );
         case AttachmentTypes.STICKER:
           const stickerPromise = new Promise(resolve => {
@@ -258,7 +265,7 @@ async function sendWithAttachments(chatId, msg, tg) {
                       chatId,
                       { source: imageBuf },
                       {
-                        caption: format(msg).substr(0, 200)
+                        caption: format(msg, { text: false }).substr(0, 200)
                       }
                     )
                   )
@@ -267,7 +274,7 @@ async function sendWithAttachments(chatId, msg, tg) {
           return stickerPromise
             .then(sticker => tg.sendSticker(chatId, sticker))
             .then(() =>
-              tg.sendMessage(chatId, format(msg), {
+              tg.sendMessage(chatId, format(msg, { text: false }), {
                 disable_notification: true
               })
             );
@@ -275,26 +282,30 @@ async function sendWithAttachments(chatId, msg, tg) {
         case AttachmentTypes.VIDEO:
           if (msg.provider === "tg" && at.originInfo.isVideoNote) {
             return th.sendVideoNote(chatId, at.originInfo.file_id, {
-              caption: format(msg).substr(0, 200)
+              caption: format(msg, { text: false }).substr(0, 200)
             });
           } else {
             return tg.sendVideo(
               chatId,
               msg.provider === "tg" ? at.originInfo.file_id : at.url,
-              { caption: format(msg).substr(0, 200) }
+              { caption: format(msg, { text: false }).substr(0, 200) }
             );
           }
         case AttachmentTypes.VOICE:
           return tg.sendVoice(
             chatId,
             msg.provider === "tg" ? at.originInfo.file_id : at.url,
-            { caption: format(msg).substr(0, 200) }
+            { caption: format(msg, { text: false }).substr(0, 200) }
           );
         default:
           throw new Error(`Unsupported media type: ${at.type}`);
       }
     })
   );
+
+  if (msg.text !== null) {
+    await tg.sendMessage(chatId, format(msg));
+  }
 }
 
 module.exports = {

@@ -63,7 +63,9 @@ class VK extends BaseProvider {
     if (res) {
       res.forEach(user => {
         this.namesCache.set(user.id, {
-          name: `${user.first_name} ${user.last_name}`,
+          name: `${user.first_name}${
+            user.last_name ? ` ${user.last_name}` : ""
+          }`,
           domain: user.domain
         });
       });
@@ -105,51 +107,52 @@ class VK extends BaseProvider {
   }
 
   unwrapIds(fwdMessages, i = 0) {
-    if (i > 30) return "";
+    if (i > 30) return {};
     let ids = {};
-    fwdMessages.forEach(msg => {
+    for (const msg of fwdMessages) {
       if (msg.fwd_messages) {
-        const innerIds = this.unwrapIds(fwdMessages, i + 1);
+        const innerIds = this.unwrapIds(msg.fwd_messages, i + 1);
         Object.keys(innerIds).forEach(id => {
           ids[id] = true;
         });
       }
       ids[msg.from_id] = true;
-    });
+    }
     return ids;
   }
 
   async unwrapForwarded(fwdMessages, userInfo = null, i = 0) {
     if (i === 0) {
       const ids = this.unwrapIds(fwdMessages);
+      console.log(Object.keys(ids));
       userInfo = await this.fetchUserInfo(Object.keys(ids));
     }
-    if (i > 30) return "";
+    if (i > 30) return [];
     let text = [];
-    await Promise.all(
-      fwdMessages.map(async msg => {
-        if (msg.fwd_messages) {
-          text = text.concat(
-            (await this.unwrapForwarded(msg.fwd_messages, userInfo, i + 1)).map(
-              r => `›${r}`
-            )
-          );
-        }
-        if (msg.from_id > 0) {
-          text.push(
-            `› ${formatBadge(
-              null,
-              userInfo[msg.from_id].name,
-              userInfo[msg.from_id].domain,
-              msg.date
-            )}${msg.text.length > 0 ? ":" : ""}`
-          );
-        }
-        if (msg.text.length > 0) {
-          text = text.concat(msg.text.split("\n").map(r => `› ${r}`));
-        }
-      })
-    );
+
+    for (const msg of fwdMessages) {
+      if (msg.fwd_messages) {
+        const inner = (await this.unwrapForwarded(
+          msg.fwd_messages,
+          userInfo,
+          i + 1
+        )).map(r => `›${r}`);
+        text = text.concat(inner);
+      }
+      if (msg.from_id > 0) {
+        text.push(
+          `› ${formatBadge(
+            null,
+            userInfo[msg.from_id] ? userInfo[msg.from_id].name : msg.from_id,
+            userInfo[msg.from_id] ? userInfo[msg.from_id].domain : null,
+            msg.date
+          )}${msg.text.length > 0 ? ":" : ""}`
+        );
+      }
+      if (msg.text && msg.text.length > 0) {
+        text = text.concat(msg.text.split("\n").map(r => `› ${r}`));
+      }
+    }
     return text;
   }
 
