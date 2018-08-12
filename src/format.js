@@ -82,10 +82,10 @@ function format(msg, options) {
       msg.username,
       msg.date
     )}`;
-    if (opts.text) {
+    if (opts.text && msg.text) {
       message += `:\n${msg.text}`;
     }
-  } else if (opts.text) {
+  } else if (opts.text && msg.text) {
     message = msg.text;
   }
   return message;
