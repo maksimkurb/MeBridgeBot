@@ -41,9 +41,6 @@ class BaseProvider {
   }
 
   async event(eventType, context) {
-    if (!this.eventListeners["eventType"].length) {
-      return;
-    }
     const msg = await this.extractMessage(context);
     switch (eventType) {
       case "incomingMessage":
