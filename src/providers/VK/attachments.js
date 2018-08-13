@@ -185,11 +185,12 @@ async function sendWithAttachments(providerChatId, msg, vk) {
     msg.attachments
       .filter(({ type }) => allowedAttachment.indexOf(type) !== -1)
       .map(async at => {
-        const filename =
+        let filename =
           at.filename ||
           (at.mimeType
             ? `${at.type}.${mime.extension(at.mimeType)}`
             : "file.dat");
+        if (filename.indexOf(".") === -1) filename += ".dat";
         switch (at.type) {
           case AttachmentTypes.ANIMATION:
           case AttachmentTypes.DOCUMENT:
@@ -245,12 +246,13 @@ async function sendWithAttachments(providerChatId, msg, vk) {
               at.payload.phone
             })\n${msg.text}`;
             if (at.payload.vcard) {
-              const doc = await uploadDoc(
+              const doc = await uploadDoc({
                 vk,
                 providerChatId,
-                "contact.vcf",
-                Buffer.from(at.payload.vcard)
-              );
+                filename: "contact.vcf",
+                mimeType: "text/vcard",
+                payload: Buffer.from(at.payload.vcard)
+              });
               attachments.push(doc);
             }
             break;
@@ -258,8 +260,8 @@ async function sendWithAttachments(providerChatId, msg, vk) {
             msg.text = `${at.payload.title || ""}  ${at.url}\n${msg.text}`;
             break;
           case AttachmentTypes.LOCATION:
-            msg.text = `${at.payload.title || "[Location]"}\n${at.payload
-              .address || ""}\n${msg.text}`;
+            msg.text = `${at.payload.title || ""}\n${at.payload.address ||
+              ""}\n${msg.text}`;
             additionalProps.lat = at.payload.lat;
             additionalProps.long = at.payload.lon;
             break;

@@ -52,18 +52,18 @@ function getMessageIcon(msg) {
 function formatBadge(provider, profile, date) {
   let badge = "";
   if (provider) {
-    badge += provider;
+    badge += `${provider}┊`;
   }
   if (profile) {
     if (profile.fullname) {
-      badge += `┊${profile.fullname}`;
+      badge += `${profile.fullname}┊`;
     }
     if (profile.username) {
-      badge += `┊${profile.username}`;
+      badge += `${profile.username}┊`;
     }
   }
   if (date) {
-    badge += `┊${timestampToTime(date)}`;
+    badge += `${timestampToTime(date)}`;
   }
   return `〈 ${badge} 〉`;
 }
