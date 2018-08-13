@@ -75,7 +75,7 @@ class VK extends BaseProvider {
     updates.hear(/^\/connect/i, this.cmdConnectionToRight);
     updates.hear(/^\/list/i, this.cmdList);
     updates.hear(/^\/disconnect/i, this.cmdDisconnect);
-    updates.on("message", async ctx => {
+    updates.on("message_new", async ctx => {
       await this.event("incomingMessage", ctx);
     });
 
@@ -86,12 +86,12 @@ class VK extends BaseProvider {
           port: webhookPort
         })
         .then(() => {
-          debug("Pooling started...");
+          debug("Webhook started...");
         });
     } else {
       this.isPooling = true;
       updates.startPolling().then(() => {
-        debug("Pooling started...");
+        debug("Polling started...");
       });
     }
   }
