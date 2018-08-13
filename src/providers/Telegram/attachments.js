@@ -12,8 +12,12 @@ async function extractAttachments(ctx, msg) {
     attachments.push(
       new Attachment({
         type: AttachmentTypes.AUDIO,
-        originInfo: msg.audio,
+        providerInfo: msg.audio,
         url: await ctx.telegram.getFileLink(msg.audio.file_id),
+        payload: {
+          artist: msg.audio.performer,
+          title: msg.audio.title
+        },
 
         size: msg.audio.file_size,
         mimeType: msg.audio.mime_type,
@@ -24,7 +28,7 @@ async function extractAttachments(ctx, msg) {
     attachments.push(
       new Attachment({
         type: AttachmentTypes.ANIMATION,
-        originInfo: msg.animation,
+        providerInfo: msg.animation,
         url: await ctx.telegram.getFileLink(msg.animation.file_id),
 
         size: msg.animation.file_size,
@@ -39,7 +43,7 @@ async function extractAttachments(ctx, msg) {
     attachments.push(
       new Attachment({
         type: AttachmentTypes.DOCUMENT,
-        originInfo: msg.document,
+        providerInfo: msg.document,
         url: await ctx.telegram.getFileLink(msg.document.file_id),
 
         size: msg.document.file_size,
@@ -53,7 +57,7 @@ async function extractAttachments(ctx, msg) {
     attachments.push(
       new Attachment({
         type: AttachmentTypes.PHOTO,
-        originInfo: photo,
+        providerInfo: photo,
         url,
 
         size: photo.file_size,
@@ -66,7 +70,7 @@ async function extractAttachments(ctx, msg) {
     attachments.push(
       new Attachment({
         type: AttachmentTypes.STICKER,
-        originInfo: msg.sticker,
+        providerInfo: msg.sticker,
         url: await ctx.telegram.getFileLink(msg.sticker.file_id),
 
         mimeType: "image/webp",
@@ -79,7 +83,7 @@ async function extractAttachments(ctx, msg) {
     attachments.push(
       new Attachment({
         type: AttachmentTypes.VIDEO,
-        originInfo: msg.video,
+        providerInfo: msg.video,
         url: await ctx.telegram.getFileLink(msg.video.file_id),
 
         size: msg.video.file_size,
@@ -93,7 +97,7 @@ async function extractAttachments(ctx, msg) {
     attachments.push(
       new Attachment({
         type: AttachmentTypes.VIDEO,
-        originInfo: {
+        providerInfo: {
           ...msg.video_note,
           isVideoNote: true
         },
@@ -110,7 +114,7 @@ async function extractAttachments(ctx, msg) {
     attachments.push(
       new Attachment({
         type: AttachmentTypes.CONTACT,
-        originInfo: msg.contact,
+        providerInfo: msg.contact,
         mimeType: "text/x-vcard",
         payload: {
           vcard: msg.contact.vcard,
@@ -124,7 +128,7 @@ async function extractAttachments(ctx, msg) {
     attachments.push(
       new Attachment({
         type: AttachmentTypes.LOCATION,
-        originInfo: msg.venue,
+        providerInfo: msg.venue,
         payload: {
           lon: msg.venue.location.longitude,
           lat: msg.venue.location.latitude,
@@ -137,7 +141,7 @@ async function extractAttachments(ctx, msg) {
     attachments.push(
       new Attachment({
         type: AttachmentTypes.LOCATION,
-        originInfo: msg.location,
+        providerInfo: msg.location,
         payload: {
           lon: msg.location.longitude,
           lat: msg.location.latitude
@@ -148,7 +152,7 @@ async function extractAttachments(ctx, msg) {
     attachments.push(
       new Attachment({
         type: AttachmentTypes.VOICE,
-        originInfo: msg.voice,
+        providerInfo: msg.voice,
         url: await ctx.telegram.getFileLink(msg.voice.file_id),
 
         size: msg.voice.file_size,
@@ -179,13 +183,13 @@ async function sendWithAttachments(chatId, msg, tg) {
         case AttachmentTypes.ANIMATION:
           return tg.sendAnimation(
             chatId,
-            msg.provider === "tg" ? at.originInfo.file_id : at.url,
+            msg.provider === "tg" ? at.providerInfo.file_id : at.url,
             { caption: format(msg, { text: false }).substr(0, 200) }
           );
         case AttachmentTypes.AUDIO:
           return tg.sendAudio(
             chatId,
-            msg.provider === "tg" ? at.originInfo.file_id : at.url,
+            msg.provider === "tg" ? at.providerInfo.file_id : at.url,
             { caption: format(msg, { text: false }).substr(0, 200) }
           );
         case AttachmentTypes.CONTACT:
@@ -204,7 +208,7 @@ async function sendWithAttachments(chatId, msg, tg) {
           // In sendDocument, sending by URL will currently only work for gif, pdf and zip files.
           let document = at.url;
           if (msg.provider === "tg") {
-            document = at.originInfo.file_id;
+            document = at.providerInfo.file_id;
           } else if (safeFileTypes.indexOf(at.mimeType) === -1) {
             document = {
               source: await downloadToBuffer(at.url),
@@ -215,9 +219,10 @@ async function sendWithAttachments(chatId, msg, tg) {
             caption: format(msg, { text: false }).substr(0, 200)
           });
         case AttachmentTypes.LINK:
-          msg.icon = "🔗";
-          msg.text = `${at.payload.title || ""} ${at.url}`;
-          return tg.sendMessage(chatId, format(msg, { text: false }));
+          const linkMsg = msg.clone();
+          linkMsg.icon = "🔗";
+          linkMsg.text = `${at.payload.title || ""} ${at.url}`;
+          return tg.sendMessage(chatId, format(linkMsg));
         case AttachmentTypes.LOCATION:
           msg.icon = "🌎";
           return tg
@@ -240,11 +245,11 @@ async function sendWithAttachments(chatId, msg, tg) {
         case AttachmentTypes.PHOTO:
           return tg.sendPhoto(
             chatId,
-            msg.provider === "tg" ? at.originInfo.file_id : at.url,
+            msg.provider === "tg" ? at.providerInfo.file_id : at.url,
             { caption: format(msg, { text: false }).substr(0, 200) }
           );
         case AttachmentTypes.STICKER:
-          const stickerPromise = new Promise(resolve => {
+          const stickerPromise = new Promise(() => {
             if (at.url.endsWith(".webp")) {
               return at.url;
             }
@@ -280,21 +285,21 @@ async function sendWithAttachments(chatId, msg, tg) {
             );
 
         case AttachmentTypes.VIDEO:
-          if (msg.provider === "tg" && at.originInfo.isVideoNote) {
-            return th.sendVideoNote(chatId, at.originInfo.file_id, {
+          if (msg.provider === "tg" && at.providerInfo.isVideoNote) {
+            return th.sendVideoNote(chatId, at.providerInfo.file_id, {
               caption: format(msg, { text: false }).substr(0, 200)
             });
           } else {
             return tg.sendVideo(
               chatId,
-              msg.provider === "tg" ? at.originInfo.file_id : at.url,
+              msg.provider === "tg" ? at.providerInfo.file_id : at.url,
               { caption: format(msg, { text: false }).substr(0, 200) }
             );
           }
         case AttachmentTypes.VOICE:
           return tg.sendVoice(
             chatId,
-            msg.provider === "tg" ? at.originInfo.file_id : at.url,
+            msg.provider === "tg" ? at.providerInfo.file_id : at.url,
             { caption: format(msg, { text: false }).substr(0, 200) }
           );
         default:

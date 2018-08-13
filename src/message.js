@@ -16,7 +16,7 @@ class Attachment {
     if (!AttachmentTypes[props.type]) throw new Error("Wrong attachment type");
     this.type = props.type;
 
-    this.originInfo = props.originInfo;
+    this.providerInfo = props.providerInfo;
 
     if (!props.url && !props.payload)
       throw new Error("Attachment URL or payload is required");
@@ -36,20 +36,18 @@ class Message {
     if (!props.provider) throw new Error("Provider is required for a message");
     this.provider = props.provider;
 
-    if (!props.originChatId)
-      throw new Error("OriginChatId is required for a message");
-    this.originChatId = props.originChatId;
+    if (!props.providerChatId)
+      throw new Error("ProviderChatId is required for a message");
+    this.providerChatId = props.providerChatId;
 
-    if (!props.originSenderId)
-      throw new Error("OriginSenderId is required for a message");
-    this.originSenderId = props.originSenderId;
+    if (!props.providerSenderId)
+      throw new Error("ProviderSenderId is required for a message");
+    this.providerSenderId = props.providerSenderId;
 
-    this.chatTitle = props.chatTitle || `#${this.originChatId}`;
+    this.chatTitle = props.chatTitle || `#${this.providerChatId}`;
     this.icon = props.icon || null;
     this.meta = props.meta || null;
-    this.fullname = props.fullname || null;
-    this.username = props.username || null;
-    this.url = props.url || null;
+    this.profile = props.profile || null;
     this.text = props.text || null;
     this.attachments = props.attachments || [];
     this.date = props.date || null;

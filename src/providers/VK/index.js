@@ -1,4 +1,5 @@
-const VKApi = require("node-vk-bot-api");
+const { VK: VKApi } = require("vk-io");
+const debug = require("debug")("bot:provider:vk");
 const LRU = require("lru");
 const Raven = require("raven");
 const { LRU_CACHE_MAXAGE } = require("../../utils");
@@ -9,7 +10,18 @@ const { format, formatBadge } = require("../../format.js");
 const { extractAttachments, sendWithAttachments } = require("./attachments");
 
 class VK extends BaseProvider {
-  constructor(token, groupId) {
+  constructor({
+    token,
+    agent,
+    lang,
+
+    pollingGroupId,
+
+    webhookPath,
+    webhookConfirmation,
+    webhookPort,
+    isWebhook
+  }) {
     super();
 
     this.namesCache = new LRU({
@@ -22,22 +34,67 @@ class VK extends BaseProvider {
     });
 
     this.PROVIDER = "vk";
-    this.api = new VKApi({
+    this.vk = new VKApi({
       token,
-      group_id: groupId
+      agent,
+      lang: lang || "ru",
+      apiMode: "parallel_selected",
+      apiLimit: 5,
+      apiAttemts: 10,
+      apiExecuteMethods: [
+        "messages.getConversationsById",
+        "users.get",
+        "docs.getMessagesUploadServer",
+        "docs.save",
+        "photos.saveMessagesPhoto",
+        "photos.getMessagesUploadServer",
+        "photos.saveMessagesPhoto"
+      ],
+
+      pollingGroupId,
+      webhookPath: webhookPath || "/vkhook",
+      webhookConfirmation
     });
-    this.api.command("/start", this.cmdStart);
-    this.api.command("/token", this.cmdConnectionFromLeft);
-    this.api.command("/connect", this.cmdConnectionToRight);
-    this.api.command("/list", this.cmdList);
-    this.api.command("/disconnect", this.cmdDisconnect);
-    this.api.use(async ctx => {
-      if (ctx.message.type === "message_new") {
-        const msg = await this.extractMessage(ctx);
-        this.messageReceived(msg);
+
+    const { updates } = this.vk;
+
+    updates.use(async (context, next) => {
+      if (context.is("message") && context.isOutbox) {
+        return;
+      }
+
+      try {
+        await next();
+      } catch (error) {
+        console.error("Error:", error);
+        debug("%O", error);
       }
     });
-    this.api.startPolling();
+    updates.hear(/^\/start/i, this.cmdStart);
+    updates.hear(/^\/token/i, this.cmdConnectionFromLeft);
+    updates.hear(/^\/connect/i, this.cmdConnectionToRight);
+    updates.hear(/^\/list/i, this.cmdList);
+    updates.hear(/^\/disconnect/i, this.cmdDisconnect);
+    updates.on("message", async ctx => {
+      const msg = await this.extractMessage(ctx);
+      this.messageReceived(msg);
+    });
+
+    if (isWebhook) {
+      this.isWebhook = true;
+      updates
+        .startWebhook({
+          port: webhookPort
+        })
+        .then(() => {
+          debug("Pooling started...");
+        });
+    } else {
+      this.isPooling = true;
+      updates.startPolling().then(() => {
+        debug("Pooling started...");
+      });
+    }
   }
 
   async fetchUserInfo(userIds) {
@@ -80,30 +137,39 @@ class VK extends BaseProvider {
     return result;
   }
 
-  async getChatTitle(ctx, originChatId) {
-    return new Promise(resolve => {
-      if (this.titlesCache.peek(originChatId)) {
-        resolve(this.titlesCache.get(originChatId));
-        return;
-      }
-      ctx.bot.execute(
-        "messages.getConversationsById  ",
-        {
-          peer_ids: originChatId
-        },
-        res => {
-          if (res && res.items && res.items[0]) {
-            this.titlesCache.set(
-              originChatId,
-              res.items[0].chat_settings.title
-            );
-            resolve(res.items[0].chat_settings.title);
-          } else {
-            resolve(`#${originChatId}`);
-          }
-        }
-      );
+  async getChatTitle(ctx, providerChatId) {
+    if (this.titlesCache.peek(providerChatId)) {
+      return this.titlesCache.get(providerChatId);
+    }
+    const resp = this.execute("messages.getConversationsById", {
+      peer_ids: providerChatId
     });
+
+    if (resp && resp.items && resp.items[0]) {
+      this.titlesCache.set(providerChatId, resp.items[0].chat_settings.title);
+      return resp.items[0].chat_settings.title;
+    } else {
+      return `#${providerChatId}`;
+    }
+  }
+
+  async extractProfile(id, userInfo) {
+    if (!userInfo) {
+      userInfo = await this.fetchUserInfo([id]);
+    }
+
+    if (!userInfo[id]) {
+      return {
+        fullname: null,
+        username: null
+      };
+    }
+
+    return {
+      fullname: userInfo[id].name,
+      profileUrl: `https://vk.com/id${id}`,
+      username: userInfo[id].domain
+    };
   }
 
   unwrapIds(fwdMessages, i = 0) {
@@ -124,7 +190,6 @@ class VK extends BaseProvider {
   async unwrapForwarded(fwdMessages, userInfo = null, i = 0) {
     if (i === 0) {
       const ids = this.unwrapIds(fwdMessages);
-      console.log(Object.keys(ids));
       userInfo = await this.fetchUserInfo(Object.keys(ids));
     }
     if (i > 30) return [];
@@ -143,8 +208,7 @@ class VK extends BaseProvider {
         text.push(
           `› ${formatBadge(
             null,
-            userInfo[msg.from_id] ? userInfo[msg.from_id].name : msg.from_id,
-            userInfo[msg.from_id] ? userInfo[msg.from_id].domain : null,
+            await this.extractProfile(msg.from_id, userInfo),
             msg.date
           )}${msg.text.length > 0 ? ":" : ""}`
         );
@@ -156,36 +220,37 @@ class VK extends BaseProvider {
     return text;
   }
 
-  async extractMessage(ctx, needChatTitle = false) {
-    const userInfo = await this.fetchUserInfo(ctx.message.from_id);
-
-    const forwardedText = await this.unwrapForwarded(ctx.message.fwd_messages);
+  async extractForwardedMessages(ctx) {
+    const forwardedText = await this.unwrapForwarded(ctx.payload.fwd_messages);
     if (forwardedText.length > 0) {
       forwardedText.push("");
     }
+    return forwardedText.join("\n");
+  }
+
+  async extractMessage(ctx, needChatTitle = false) {
+    let text = await this.extractForwardedMessages(ctx);
+    text += ctx.payload.text || "";
+
     return new Message({
       provider: "vk",
-      originChatId: ctx.message.peer_id,
-      originSenderId: ctx.message.from_id,
+      providerChatId: ctx.$from.id,
+      providerSenderId: ctx.$sender.id,
       ...(needChatTitle
-        ? { chatTitle: await this.getChatTitle(ctx, ctx.message.peer_id) }
+        ? { chatTitle: await this.getChatTitle(ctx, ctx.$from.id) }
         : {}),
-      meta: {
-        id: ctx.message.conversation_message_id
-      },
-      fullname: userInfo[ctx.message.from_id].name,
-      username: userInfo[ctx.message.from_id].domain,
-      url: `https://vk.com/id${ctx.message.from_id}`,
-      text:
-        forwardedText.length > 0 || ctx.message.text
-          ? `${forwardedText.join("\n")}${ctx.message.text || ""}`
-          : null,
-      attachments: await extractAttachments(ctx, ctx.message),
-      date: ctx.message.date
+      profile: await this.extractProfile(ctx.$sender.id),
+      text,
+      attachments: await extractAttachments(ctx, ctx.payload),
+      date: ctx.payload.date
     });
   }
 
   async execute(method, settings, cb) {
+    if (cb) {
+      // TODO:remove
+      throw new Error("CB is not impl");
+    }
     Raven.captureBreadcrumb({
       data: {
         method
@@ -196,14 +261,7 @@ class VK extends BaseProvider {
     });
     try {
       const args = Object.assign({}, { v: "5.80" }, settings);
-      if (!cb) {
-        return new Promise((resolve, reject) => {
-          this.api.execute(method, args, res => {
-            resolve(res);
-          });
-        });
-      }
-      return this.api.execute(method, args, cb);
+      return this.vk.api.call(method, args);
     } catch (e) {
       Raven.captureException(e);
     }
@@ -218,7 +276,7 @@ class VK extends BaseProvider {
           message: format(msg)
         });
       }
-      return sendWithAttachments(chatId, msg, this);
+      return sendWithAttachments(chatId, msg, this.vk);
     }
 
     return this.execute("messages.send", {

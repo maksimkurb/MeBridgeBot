@@ -15,18 +15,38 @@ module.exports = {
 };
 Raven.config(process.env.SENTRY_DSN || null).install();
 
+function getHTTPSAgent(proxy) {
+  if (proxy) {
+    return {
+      agent: new HttpsProxyAgent(proxy)
+    };
+  }
+  return {};
+}
+
 Raven.context(async () => {
   await dbSync();
 
-  const vk = new VK(process.env.VK_TOKEN, process.env.VK_GROUP_ID);
+  const vkOpts = {
+    token: process.env.VK_TOKEN,
+    lang: process.env.VK_LANG,
+    ...getHTTPSAgent(process.env.VK_PROXY)
+  };
+  if (process.env.VK_MODE === "webhook") {
+    vkOpts.isWebhook = true;
+    vkOpts.webhookPath = process.env.VK_WEBHOOK_PATH;
+    vkOpts.webhookPort = process.env.VK_WEBHOOK_PORT;
+    vkOpts.webhookConfirmation = process.env.VK_WEBHOOK_CONFIRMATION;
+  } else {
+    vkOpts.pollingGroupId = process.env.VK_POLLING_GROUP_ID;
+  }
+  const vk = new VK(vkOpts);
 
-  const telegram = new Telegram(process.env.TELEGRAM_TOKEN, {
+  const telegram = new Telegram(process.env.TG_TOKEN, {
     username: BOT_NAME,
     telegram: {
-      apiRoot: process.env.TELEGRAM_API_ROOT || "https://api.telegram.org",
-      ...(process.env.TELEGRAM_PROXY
-        ? { agent: new HttpsProxyAgent(process.env.TELEGRAM_PROXY) }
-        : {})
+      apiRoot: process.env.TG_API_ROOT || "https://api.telegram.org",
+      ...getHTTPSAgent(process.env.TG_PROXY)
     }
   });
 
@@ -34,13 +54,13 @@ Raven.context(async () => {
   console.log("Bot is running...");
 
   async function onMessage(provider, msg) {
-    try {
-      const chat = await getChat(provider, msg.originChatId);
+    Raven.context(async () => {
+      const chat = await getChat(provider, msg.providerChatId);
       const connections = await findConnectionsForChatId(chat.id);
       Raven.captureBreadcrumb({
         data: {
           fromProvider: provider,
-          fromChatId: msg.originChatId,
+          fromChatId: msg.providerChatId,
           hasAttachments: msg.attachments.length > 0
         },
         message: "Received message",
@@ -58,14 +78,12 @@ Raven.context(async () => {
           }
 
           await services[resultChat.provider].sendMessage(
-            resultChat.chatId,
+            resultChat.providerChatId,
             message
           );
         })
       );
-    } catch (e) {
-      Raven.captureException(e);
-    }
+    });
   }
 
   enabledServices.forEach(svc => {

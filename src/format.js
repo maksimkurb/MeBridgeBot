@@ -49,7 +49,7 @@ function getMessageIcon(msg) {
   return "💬";
 }
 
-function formatBadge(provider, fullname, username, date) {
+function formatBadge(provider, { fullname, username }, date) {
   let badge = "";
   if (provider) {
     badge += `${provider}┊`;
@@ -78,8 +78,7 @@ function format(msg, options) {
   if (opts.badge) {
     message = `${getMessageIcon(msg)}${formatBadge(
       msg.provider,
-      msg.fullname,
-      msg.username,
+      msg.profile,
       msg.date
     )}`;
     if (opts.text && msg.text) {

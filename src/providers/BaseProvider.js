@@ -5,6 +5,7 @@ const {
   getChat,
   findConnectionsForChatId
 } = require("../utils");
+const { version } = require("../../package.json");
 const { Message } = require("../message");
 const { Connection, Op } = require("../db");
 
@@ -68,7 +69,7 @@ class BaseProvider {
   async cmdStart(ctx) {
     const msg = await this.extractMessage(ctx);
     this.sendMessage(
-      msg.originChatId,
+      msg.providerChatId,
       [
         "🔹 Hello! I am a MeBridgeBot!",
         "I can connect multiple chats by resending messages from one to another",
@@ -77,7 +78,8 @@ class BaseProvider {
         "After that, use /connect <token> command in another conversation with this bot",
         "You can list your connections by /list command",
         "",
-        "/author <Maxim Kurbatov> maksimkurb@gmail.com, 20!8"
+        "/author <Maxim Kurbatov> maksimkurb@gmail.com, 20!8",
+        `/version ${version}`
       ].join("\n")
     );
   }
@@ -88,10 +90,14 @@ class BaseProvider {
    */
   async cmdConnectionFromLeft(ctx) {
     const msg = await this.extractMessage(ctx, true);
-    const chat = await getChat(this.PROVIDER, msg.originChatId, msg.chatTitle);
+    const chat = await getChat(
+      this.PROVIDER,
+      msg.providerChatId,
+      msg.chatTitle
+    );
     const key = await createConnection(chat);
     await this.sendMessage(
-      msg.originChatId,
+      msg.providerChatId,
       `🔹 Chat connect command 📫:\n/connect $mbb1$${key}\n\nUse it in another chat to make a bridge`
     );
   }
@@ -106,7 +112,7 @@ class BaseProvider {
 
     const res = msg.text.match(connectionRegexp);
     if (!res) {
-      this.sendMessage(msg.originChatId, `🔹 Connection string is wrong 📪`);
+      this.sendMessage(msg.providerChatId, `🔹 Connection string is wrong 📪`);
       return;
     }
 
@@ -116,25 +122,29 @@ class BaseProvider {
     const chatConnection = await findConnection(id);
     if (!chatConnection) {
       this.sendMessage(
-        msg.originChatId,
+        msg.providerChatId,
         `🔹 Connection with that ID is not found 📭`
       );
       return;
     }
     if (chatConnection.key !== key) {
-      this.sendMessage(msg.originChatId, `🔹 Connection key is wrong 📪`);
+      this.sendMessage(msg.providerChatId, `🔹 Connection key is wrong 📪`);
       return;
     }
 
     if (chatConnection.rightChatId) {
-      this.sendMessage(msg.originChatId, `🔹 Connection key is outdated`);
+      this.sendMessage(msg.providerChatId, `🔹 Connection key is outdated`);
       return;
     }
 
-    const chat = await getChat(this.PROVIDER, msg.originChatId, msg.chatTitle);
+    const chat = await getChat(
+      this.PROVIDER,
+      msg.providerChatId,
+      msg.chatTitle
+    );
     if (chatConnection.leftChatId === chat.id) {
       this.sendMessage(
-        msg.originChatId,
+        msg.providerChatId,
         `🔹 Could not connect chat with itself 😋\nPlease, use this command in another chat with this bot`
       );
       return;
@@ -149,7 +159,7 @@ class BaseProvider {
     );
     if (same) {
       this.sendMessage(
-        msg.originChatId,
+        msg.providerChatId,
         `🔹 Connection between this chats already exists`
       );
       return;
@@ -157,14 +167,18 @@ class BaseProvider {
     chatConnection.setRightChat(chat);
 
     this.sendMessage(
-      msg.originChatId,
+      msg.providerChatId,
       `🔹 Connection successfully completed ✨💦💦`
     );
   }
 
   async cmdList(ctx) {
     const msg = await this.extractMessage(ctx, true);
-    const chat = await getChat(this.PROVIDER, msg.originChatId, msg.chatTitle);
+    const chat = await getChat(
+      this.PROVIDER,
+      msg.providerChatId,
+      msg.chatTitle
+    );
     const connections = await findConnectionsForChatId(chat.id, false);
     const list = await Promise.all(
       connections.map(async (con, i) => {
@@ -183,12 +197,12 @@ class BaseProvider {
     );
     if (list.length === 0) {
       this.sendMessage(
-        msg.originChatId,
+        msg.providerChatId,
         `🔹 No chats connected. Try to /start`
       );
       return;
     }
-    this.sendMessage(msg.originChatId, `🔹 Here you go:\n${list.join("\n")}`);
+    this.sendMessage(msg.providerChatId, `🔹 Here you go:\n${list.join("\n")}`);
   }
   async cmdDisconnect(ctx) {
     const msg = await this.extractMessage(ctx);
@@ -197,13 +211,13 @@ class BaseProvider {
     const res = msg.text.match(disconnectionRegexp);
     if (!res) {
       this.sendMessage(
-        msg.originChatId,
+        msg.providerChatId,
         `🔹 Disconnection command requires id`
       );
       return;
     }
 
-    const chat = await getChat(this.PROVIDER, msg.originChatId);
+    const chat = await getChat(this.PROVIDER, msg.providerChatId);
 
     const connectionId = parseInt(res[1]);
     const destroyed = await Connection.destroy({
@@ -221,11 +235,11 @@ class BaseProvider {
     });
     if (destroyed) {
       this.sendMessage(
-        msg.originChatId,
+        msg.providerChatId,
         `🔹 Chat ${connectionId} disconnected!`
       );
     } else {
-      this.sendMessage(msg.originChatId, `🔹 Chat ${connectionId} not found`);
+      this.sendMessage(msg.providerChatId, `🔹 Chat ${connectionId} not found`);
     }
   }
 }

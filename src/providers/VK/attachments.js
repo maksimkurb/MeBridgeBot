@@ -11,7 +11,7 @@ async function extractAttachments(ctx, msg) {
     attachments.push(
       new Attachment({
         type: AttachmentTypes.LOCATION,
-        originInfo: msg.geo,
+        providerInfo: msg.geo,
         payload: {
           lat: msg.geo.coordinates.latitude,
           lon: msg.geo.coordinates.longitude
@@ -19,6 +19,7 @@ async function extractAttachments(ctx, msg) {
       })
     );
   }
+
   msg.attachments.forEach(mAt => {
     switch (mAt.type) {
       case "photo":
@@ -26,7 +27,7 @@ async function extractAttachments(ctx, msg) {
         attachments.push(
           new Attachment({
             type: AttachmentTypes.PHOTO,
-            originInfo: mAt.photo,
+            providerInfo: mAt.photo,
             url: sizes[0].url,
 
             mimeType: "image/jpeg",
@@ -42,11 +43,11 @@ async function extractAttachments(ctx, msg) {
         attachments.push(
           new Attachment({
             type: AttachmentTypes.LINK,
-            originInfo: mAt.video,
+            providerInfo: mAt.video,
             url: `https://vk.com/video${mAt.video.owner_id}_${mAt.video.id}`,
 
             payload: {
-              title: mAt.video.title
+              title: `📹 ${mAt.video.title || "[video]"}`
             }
           })
         );
@@ -55,7 +56,7 @@ async function extractAttachments(ctx, msg) {
         attachments.push(
           new Attachment({
             type: AttachmentTypes.LINK,
-            originInfo: mAt.audio,
+            providerInfo: mAt.audio,
             url: `https://vk.com/audio${mAt.audio.owner_id}_${mAt.audio.id}`,
 
             payload: {
@@ -70,7 +71,7 @@ async function extractAttachments(ctx, msg) {
         attachments.push(
           new Attachment({
             type: AttachmentTypes.LINK,
-            originInfo: mAt.link,
+            providerInfo: mAt.link,
             url: mAt.link.url,
 
             payload: {
@@ -93,7 +94,7 @@ async function extractAttachments(ctx, msg) {
               mAt.doc.preview && mAt.doc.preview.audio_msg
                 ? AttachmentTypes.VOICE
                 : AttachmentTypes.DOCUMENT,
-            originInfo: mAt.doc,
+            providerInfo: mAt.doc,
             url: mAt.doc.url,
 
             size: mAt.doc.size,
@@ -106,7 +107,7 @@ async function extractAttachments(ctx, msg) {
         attachments.push(
           new Attachment({
             type: AttachmentTypes.LINK,
-            originInfo: mAt.wall,
+            providerInfo: mAt.wall,
             url: `https://vk.com/wall${mAt.wall.owner_id}_${mAt.wall.id}`,
             payload: {
               text: `${mAt.wall.text.substr(0, 200)}...`
@@ -118,7 +119,7 @@ async function extractAttachments(ctx, msg) {
         attachments.push(
           new Attachment({
             type: AttachmentTypes.STICKER,
-            originInfo: mAt.sticker,
+            providerInfo: mAt.sticker,
             mimeType: "image/png",
             url: mAt.sticker.images[mAt.sticker.images.length - 1].url,
             width: mAt.sticker.images[mAt.sticker.images.length - 1].width,
@@ -131,7 +132,7 @@ async function extractAttachments(ctx, msg) {
           new Attachment({
             type: AttachmentTypes.PHOTO,
             mimeType: "image/png",
-            originInfo: mAt.gift,
+            providerInfo: mAt.gift,
             url: mAt.gift.thumb_256 || mAt.gift.thumb_96 || mAt.gift.thumb_48
           })
         );
@@ -141,53 +142,36 @@ async function extractAttachments(ctx, msg) {
   return attachments;
 }
 
-async function uploadFile(uploadUrl, field, filename, urlOrBuffer) {
-  if (!(urlOrBuffer instanceof Buffer)) {
-    urlOrBuffer = await fetch(urlOrBuffer).then(res => res.buffer());
-  }
-  const form = new FormData();
-  form.append(field, urlOrBuffer, { filename });
-  return fetch(uploadUrl, { method: "POST", body: form }).then(res =>
-    res.json()
-  );
+async function uploadPhoto({ vk, providerChatId, payload }) {
+  const savedPhoto = await vk.upload.messagePhoto({
+    source: payload,
+    peer_id: providerChatId
+  });
+  return savedPhoto.toString();
+}
+async function uploadDoc({
+  vk,
+  providerChatId,
+  filename,
+  title,
+  mimeType,
+  payload,
+  type = "doc"
+}) {
+  const savedDoc = await vk.upload.messageDocument({
+    peer_id: providerChatId,
+    source: {
+      value: payload,
+      filename,
+      contentType: mimeType
+    },
+    type,
+    title
+  });
+  return savedDoc.toString();
 }
 
-async function uploadPhoto(vk, chatId, filename, urlOrBuffer) {
-  const uploadServer = await vk.execute("photos.getMessagesUploadServer", {
-    peer_id: chatId
-  });
-  const uploadedFile = await uploadFile(
-    uploadServer.upload_url,
-    "photo",
-    filename,
-    urlOrBuffer
-  );
-  const savedPhoto = await vk.execute("photos.saveMessagesPhoto", {
-    server: uploadedFile.server,
-    photo: uploadedFile.photo,
-    hash: uploadedFile.hash
-  });
-  return `photo${savedPhoto[0].owner_id}_${savedPhoto[0].id}`;
-}
-async function uploadDoc(vk, chatId, filename, urlOrBuffer, type = "doc") {
-  const uploadServer = await vk.execute("docs.getMessagesUploadServer", {
-    peer_id: chatId,
-    type
-  });
-  const uploadedFile = await uploadFile(
-    uploadServer.upload_url,
-    "file",
-    filename,
-    urlOrBuffer
-  );
-  const savedDoc = await vk.execute("docs.save", {
-    file: uploadedFile.file,
-    title: filename
-  });
-  return `doc${savedDoc[0].owner_id}_${savedDoc[0].id}`;
-}
-
-async function sendWithAttachments(chatId, msg, vk) {
+async function sendWithAttachments(providerChatId, msg, vk) {
   const allowedAttachment = [
     AttachmentTypes.ANIMATION,
     AttachmentTypes.AUDIO,
@@ -203,33 +187,45 @@ async function sendWithAttachments(chatId, msg, vk) {
       .map(async at => {
         const filename =
           at.filename ||
-          (at.mimeType ? `${at.type}.${mime.extension(at.mimeType)}` : null);
+          (at.mimeType
+            ? `${at.type}.${mime.extension(at.mimeType)}`
+            : "file.dat");
         switch (at.type) {
           case AttachmentTypes.ANIMATION:
           case AttachmentTypes.DOCUMENT:
           case AttachmentTypes.VIDEO: // Uploading videos with community token is not implemented yet
-            return uploadDoc(vk, chatId, filename || "file.dat", at.url);
+            return uploadDoc({
+              vk,
+              providerChatId,
+              filename: filename,
+              title: filename,
+              mimeType: at.mimeType || "text/plain",
+              payload: at.url
+            });
 
           case AttachmentTypes.AUDIO:
-            return uploadDoc(
+            return uploadDoc({
               vk,
-              chatId,
-              filename ? `${filename}.txt` : "audio.mp3.txt",
-              at.url
-            );
+              providerChatId,
+              filename: "audio.txt",
+              title: `${at.payload.artist} - ${at.payload.title}`,
+              mimeType: at.mimeType || "text/plain",
+              payload: at.url
+            });
 
           case AttachmentTypes.STICKER:
           case AttachmentTypes.PHOTO:
-            return uploadPhoto(vk, chatId, filename || "image.jpg", at.url);
+            return uploadPhoto({ vk, providerChatId, payload: at.url });
 
           case AttachmentTypes.VOICE:
-            return uploadDoc(
+            return uploadDoc({
               vk,
-              chatId,
-              filename || "voice.ogg",
-              at.url,
-              "audio_message"
-            );
+              providerChatId,
+              filename: filename || "voice.ogg",
+              mimeType: at.mimeType,
+              payload: at.url,
+              type: "audio_message"
+            });
             break;
           default:
             throw new Error(`Unsupported media type: ${at.type}`);
@@ -251,7 +247,7 @@ async function sendWithAttachments(chatId, msg, vk) {
             if (at.payload.vcard) {
               const doc = await uploadDoc(
                 vk,
-                chatId,
+                providerChatId,
                 "contact.vcf",
                 Buffer.from(at.payload.vcard)
               );
@@ -270,8 +266,8 @@ async function sendWithAttachments(chatId, msg, vk) {
         }
       })
   );
-  return vk.execute("messages.send", {
-    peer_id: chatId,
+  return vk.api.messages.send({
+    peer_id: providerChatId,
     attachment: attachments.join(","),
     message: format(msg),
     ...additionalProps

@@ -3,11 +3,11 @@ const { Op, Chat, Connection } = require("./db");
 
 const LRU_CACHE_MAXAGE = 10 * 60 * 60 * 1000;
 
-async function getChat(provider, originChatId, chatTitle) {
+async function getChat(provider, providerChatId, chatTitle) {
   const chat = await Chat.findOrCreate({
     where: {
       provider,
-      chatId: originChatId
+      providerChatId
     },
     defaults: {
       chatTitle
