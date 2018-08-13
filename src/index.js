@@ -88,6 +88,6 @@ Raven.context(async () => {
 
   enabledServices.forEach(svc => {
     services[svc.PROVIDER] = svc;
-    svc.addEventListener("message", onMessage);
+    svc.addEventListener("incomingMessage", onMessage);
   });
 });

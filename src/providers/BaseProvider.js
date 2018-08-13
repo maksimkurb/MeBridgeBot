@@ -16,7 +16,7 @@ const disconnectionRegexp = /^\/disconnect[_ ](\d+)/;
 class BaseProvider {
   constructor() {
     this.eventListeners = {
-      message: []
+      incomingMessage: []
     };
     this.cmdStart = this.cmdStart.bind(this);
     this.cmdConnectionFromLeft = this.cmdConnectionFromLeft.bind(this);
@@ -40,10 +40,17 @@ class BaseProvider {
     }
   }
 
-  messageReceived(msg) {
-    this.eventListeners.message.forEach(cb => {
-      cb(this.PROVIDER, msg);
-    });
+  async event(eventType, context) {
+    if (!this.eventListeners["eventType"].length) {
+      return;
+    }
+    const msg = await this.extractMessage(context);
+    switch (eventType) {
+      case "incomingMessage":
+        this.eventListeners.incomingMessage.forEach(cb => {
+          cb(this.PROVIDER, msg);
+        });
+    }
   }
 
   captureMessageSending(chatId, msg) {

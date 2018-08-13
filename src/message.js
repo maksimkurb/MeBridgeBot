@@ -36,11 +36,11 @@ class Message {
     if (!props.provider) throw new Error("Provider is required for a message");
     this.provider = props.provider;
 
-    if (!props.providerChatId)
+    if (!props.hasOwnProperty("providerChatId"))
       throw new Error("ProviderChatId is required for a message");
     this.providerChatId = props.providerChatId;
 
-    if (!props.providerSenderId)
+    if (!props.hasOwnProperty("providerSenderId"))
       throw new Error("ProviderSenderId is required for a message");
     this.providerSenderId = props.providerSenderId;
 

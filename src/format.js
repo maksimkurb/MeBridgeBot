@@ -49,14 +49,18 @@ function getMessageIcon(msg) {
   return "💬";
 }
 
-function formatBadge(provider, { fullname, username }, date) {
+function formatBadge(provider, profile, date) {
   let badge = "";
   if (provider) {
-    badge += `${provider}┊`;
+    badge += provider;
   }
-  badge += fullname;
-  if (username) {
-    badge += `┊${username}`;
+  if (profile) {
+    if (profile.fullname) {
+      badge += `┊${profile.fullname}`;
+    }
+    if (profile.username) {
+      badge += `┊${profile.username}`;
+    }
   }
   if (date) {
     badge += `┊${timestampToTime(date)}`;

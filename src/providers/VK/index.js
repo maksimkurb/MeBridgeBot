@@ -76,8 +76,7 @@ class VK extends BaseProvider {
     updates.hear(/^\/list/i, this.cmdList);
     updates.hear(/^\/disconnect/i, this.cmdDisconnect);
     updates.on("message", async ctx => {
-      const msg = await this.extractMessage(ctx);
-      this.messageReceived(msg);
+      await this.event("incomingMessage", ctx);
     });
 
     if (isWebhook) {
@@ -109,7 +108,7 @@ class VK extends BaseProvider {
 
     let res;
     try {
-      res = await this.execute("users.get", {
+      res = await this.vk.api.users.get({
         user_ids: unknownIds.join(","),
         name_case: "nom",
         fields: "domain"
@@ -141,7 +140,7 @@ class VK extends BaseProvider {
     if (this.titlesCache.peek(providerChatId)) {
       return this.titlesCache.get(providerChatId);
     }
-    const resp = this.execute("messages.getConversationsById", {
+    const resp = this.vk.api.messages.getConversationsById({
       peer_ids: providerChatId
     });
 
@@ -246,32 +245,11 @@ class VK extends BaseProvider {
     });
   }
 
-  async execute(method, settings, cb) {
-    if (cb) {
-      // TODO:remove
-      throw new Error("CB is not impl");
-    }
-    Raven.captureBreadcrumb({
-      data: {
-        method
-      },
-      message: "Executed method",
-      category: "api",
-      level: "debug"
-    });
-    try {
-      const args = Object.assign({}, { v: "5.80" }, settings);
-      return this.vk.api.call(method, args);
-    } catch (e) {
-      Raven.captureException(e);
-    }
-  }
-
   async sendMessage(chatId, msg) {
     this.captureMessageSending(chatId, msg);
     if (msg instanceof Message) {
       if (!msg.attachments.length) {
-        return this.execute("messages.send", {
+        return this.vk.api.messages.send({
           peer_id: chatId,
           message: format(msg)
         });
@@ -279,7 +257,7 @@ class VK extends BaseProvider {
       return sendWithAttachments(chatId, msg, this.vk);
     }
 
-    return this.execute("messages.send", {
+    return this.vk.api.messages.send({
       peer_id: chatId,
       message: msg
     });

@@ -23,30 +23,24 @@ class Telegram extends BaseProvider {
     this.api.command("connect", this.cmdConnectionToRight);
     this.api.command("list", this.cmdList);
     this.api.hears(/^\/disconnect[_ ]\d+/, this.cmdDisconnect);
-    this.api.on("message", async ctx => {
-      // Do not resend service messages
-      if (
-        ctx.new_chat_members ||
-        ctx.left_chat_member ||
-        ctx.new_chat_title ||
-        ctx.new_chat_photo ||
-        ctx.delete_chat_photo ||
-        ctx.group_chat_created ||
-        ctx.supergroup_chat_created ||
-        ctx.channel_chat_created ||
-        ctx.migrate_to_chat_id ||
-        ctx.migrate_from_chat_id ||
-        ctx.invoice ||
-        ctx.successful_payment ||
-        ctx.connected_website ||
-        ctx.passport_data ||
-        ctx.pinned_message
-      ) {
-        return;
+    this.api.on(
+      [
+        "text",
+        "audio",
+        "document",
+        "photo",
+        "sticker",
+        "video",
+        "voice",
+        "contact",
+        "location",
+        "venue",
+        "video_note"
+      ],
+      async ctx => {
+        await this.event("incomingMessage", ctx);
       }
-      const msg = await this.extractMessage(ctx);
-      this.messageReceived(msg);
-    });
+    );
     this.api.startPolling();
   }
 
