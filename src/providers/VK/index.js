@@ -75,7 +75,7 @@ class VK extends BaseProvider {
     updates.hear(/^\/connect/i, this.cmdConnectionToRight);
     updates.hear(/^\/list/i, this.cmdList);
     updates.hear(/^\/disconnect/i, this.cmdDisconnect);
-    updates.on("message", async ctx => {
+    updates.on("message_new", async ctx => {
       await this.event("incomingMessage", ctx);
     });
 
@@ -119,9 +119,7 @@ class VK extends BaseProvider {
     if (res) {
       res.forEach(user => {
         this.namesCache.set(user.id, {
-          name: `${user.first_name}${
-            user.last_name ? ` ${user.last_name}` : ""
-          }`,
+          name: `${user.first_name} ${user.last_name}`.trim(),
           domain: user.domain
         });
       });

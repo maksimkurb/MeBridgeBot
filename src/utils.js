@@ -3,21 +3,13 @@ const { Op, Chat, Connection } = require("./db");
 
 const LRU_CACHE_MAXAGE = 10 * 60 * 60 * 1000;
 
-async function getChat(provider, providerChatId, chatTitle) {
+async function getChat(provider, providerChatId) {
   const chat = await Chat.findOrCreate({
     where: {
       provider,
       providerChatId
-    },
-    defaults: {
-      chatTitle
     }
   });
-  // Update chat title if it is changed
-  if (chatTitle && chat[0].chatTitle !== chatTitle) {
-    chat[0].chatTitle = chatTitle;
-    await chat[0].save();
-  }
   return chat[0];
 }
 

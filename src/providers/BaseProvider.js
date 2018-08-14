@@ -10,8 +10,9 @@ const { Message } = require("../message");
 const { Connection, Op } = require("../db");
 
 const CONNECTION_TIMEOUT = 600; // ten minutes
-const connectionRegexp = /^\/connect(?:@\w+)?\s+\$mbb1\$(\d+)!([a-zA-Z0-9_$]+)/;
-const disconnectionRegexp = /^\/disconnect[_ ](\d+)/;
+const connectionRegexp = /^\/connect(?:@\w+)?\s+\$mbb1\$(\d+)!([a-zA-Z0-9_$]+)/i;
+// use [_ ] because we want to send clickable links (e.g /disconnect_1)
+const disconnectionRegexp = /^\/disconnect(?:@\w+)?[_ ]+(\d+)/i;
 
 class BaseProvider {
   constructor() {
@@ -21,6 +22,7 @@ class BaseProvider {
     this.cmdStart = this.cmdStart.bind(this);
     this.cmdConnectionFromLeft = this.cmdConnectionFromLeft.bind(this);
     this.cmdConnectionToRight = this.cmdConnectionToRight.bind(this);
+    this.cmdSetNickname = this.cmdSetNickname.bind(this);
     this.cmdList = this.cmdList.bind(this);
     this.cmdDisconnect = this.cmdDisconnect.bind(this);
   }
@@ -94,11 +96,8 @@ class BaseProvider {
    */
   async cmdConnectionFromLeft(ctx) {
     const msg = await this.extractMessage(ctx, true);
-    const chat = await getChat(
-      this.PROVIDER,
-      msg.providerChatId,
-      msg.chatTitle
-    );
+    const chat = await getChat(this.PROVIDER, msg.providerChatId);
+    await chat.updateTitle(msg.chatTitle);
     const key = await createConnection(chat);
     await this.sendMessage(
       msg.providerChatId,
@@ -141,11 +140,8 @@ class BaseProvider {
       return;
     }
 
-    const chat = await getChat(
-      this.PROVIDER,
-      msg.providerChatId,
-      msg.chatTitle
-    );
+    const chat = await getChat(this.PROVIDER, msg.providerChatId);
+    await chat.updateTitle(msg.chatTitle);
     if (chatConnection.leftChatId === chat.id) {
       this.sendMessage(
         msg.providerChatId,
@@ -178,11 +174,8 @@ class BaseProvider {
 
   async cmdList(ctx) {
     const msg = await this.extractMessage(ctx, true);
-    const chat = await getChat(
-      this.PROVIDER,
-      msg.providerChatId,
-      msg.chatTitle
-    );
+    const chat = await getChat(this.PROVIDER, msg.providerChatId);
+    await chat.chatTitle(msg.chatTitle);
     const connections = await findConnectionsForChatId(chat.id, false);
     const list = await Promise.all(
       connections.map(async (con, i) => {

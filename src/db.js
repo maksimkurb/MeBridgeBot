@@ -23,21 +23,12 @@ const Connection = db.define("connection", {
   key: Sequelize.STRING
 });
 
-const User = db.define("connection", {
-  providerUserId: Sequelize.STRING,
-  nickname: Sequelize.STRING
-});
-
 Connection.belongsTo(Chat, { as: "leftChat", foreignKey: "leftChatId" });
 Connection.belongsTo(Chat, { as: "rightChat", foreignKey: "rightChatId" });
-
-User.belongsTo(Chat, { as: "chat", foreignKey: "chatId" });
-Chat.hasMany(User, { as: "users", foreignKey: "chatId" });
 
 async function dbSync() {
   await Chat.sync();
   await Connection.sync();
-  await User.sync();
   debug("DB synced");
 }
 
@@ -45,5 +36,4 @@ module.exports = db;
 module.exports.Op = Sequelize.Op;
 module.exports.Chat = Chat;
 module.exports.Connection = Connection;
-module.exports.User = User;
 module.exports.dbSync = dbSync;
