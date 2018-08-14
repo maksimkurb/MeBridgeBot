@@ -308,7 +308,7 @@ export async function sendWithAttachments(chatId, msg, tg) {
     })
   );
 
-  if (msg.text !== null) {
+  if (msg.text !== null && msg.text.length > 0) {
     await tg.sendMessage(chatId, format(msg));
   }
 }

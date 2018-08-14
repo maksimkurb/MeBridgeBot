@@ -17,6 +17,13 @@ export const Chat = db.define("chat", {
   chatTitle: Sequelize.STRING
 });
 
+Chat.prototype.updateTitle = async function(chatTitle) {
+  if (this.chatTitle !== chatTitle) {
+    this.chatTitle = chatTitle;
+    await this.save();
+  }
+};
+
 export const Connection = db.define("connection", {
   // TODO: make use of it
   direction: {

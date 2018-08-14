@@ -62,7 +62,7 @@ export async function extractAttachments(ctx, msg) {
             payload: {
               title: `🎵 ${mAt.audio.artist} - ${mAt.audio.title} (${Math.floor(
                 mAt.audio.duration / 60
-              )}:${mAt.audio.duration % 60})`
+              )}:${("0" + (mAt.audio.duration % 60)).substr(-2)})`
             }
           })
         );

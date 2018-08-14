@@ -153,7 +153,7 @@ export default class BaseProvider {
   async cmdList(ctx) {
     const msg = await this.extractMessage(ctx, true);
     const chat = await getChat(this.PROVIDER, msg.providerChatId);
-    await chat.chatTitle(msg.chatTitle);
+    await chat.updateTitle(msg.chatTitle);
     const connections = await findConnectionsForChatId(chat.id, false);
     const list = await Promise.all(
       connections.map(async (con, i) => {

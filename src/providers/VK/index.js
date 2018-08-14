@@ -7,6 +7,10 @@ import BaseProvider from "../BaseProvider.js";
 import { Message } from "../../message";
 import { format, formatBadge } from "../../format.js";
 import { extractAttachments, sendWithAttachments } from "./attachments";
+import {
+  unwrapForwardedUserIds,
+  unwrapForwardedMessages
+} from "./forwardedMessages";
 
 const debug = createDebug("bot:provider:vk");
 
@@ -76,7 +80,7 @@ export default class VK extends BaseProvider {
     updates.hear(/^\/connect/i, this.cmdConnectionToRight);
     updates.hear(/^\/list/i, this.cmdList);
     updates.hear(/^\/disconnect/i, this.cmdDisconnect);
-    updates.on("message_new", async ctx => {
+    updates.on("message", async ctx => {
       await this.event("incomingMessage", ctx);
     });
 
@@ -170,64 +174,29 @@ export default class VK extends BaseProvider {
     };
   }
 
-  unwrapIds(fwdMessages, i = 0) {
-    if (i > 30) return {};
-    let ids = {};
-    for (const msg of fwdMessages) {
-      if (msg.fwd_messages) {
-        const innerIds = this.unwrapIds(msg.fwd_messages, i + 1);
-        Object.keys(innerIds).forEach(id => {
-          ids[id] = true;
-        });
-      }
-      ids[msg.from_id] = true;
-    }
-    return ids;
-  }
-
-  async unwrapForwarded(fwdMessages, userInfo = null, i = 0) {
-    if (i === 0) {
-      const ids = this.unwrapIds(fwdMessages);
-      userInfo = await this.fetchUserInfo(Object.keys(ids));
-    }
-    if (i > 30) return [];
-    let text = [];
-
-    for (const msg of fwdMessages) {
-      if (msg.fwd_messages) {
-        const inner = (await this.unwrapForwarded(
-          msg.fwd_messages,
-          userInfo,
-          i + 1
-        )).map(r => `›${r}`);
-        text = text.concat(inner);
-      }
-      if (msg.from_id > 0) {
-        text.push(
-          `› ${formatBadge(
-            null,
-            await this.extractProfile(msg.from_id, userInfo),
-            msg.date
-          )}${msg.text.length > 0 ? ":" : ""}`
-        );
-      }
-      if (msg.text && msg.text.length > 0) {
-        text = text.concat(msg.text.split("\n").map(r => `› ${r}`));
-      }
-    }
-    return text;
-  }
-
   async extractForwardedMessages(ctx) {
-    const forwardedText = await this.unwrapForwarded(ctx.payload.fwd_messages);
-    if (forwardedText.length > 0) {
-      forwardedText.push("");
-    }
-    return forwardedText.join("\n");
+    const userIds = unwrapForwardedUserIds(ctx.payload.fwd_messages);
+    const userInfo = await this.fetchUserInfo(userIds);
+
+    const forwardedText = await unwrapForwardedMessages(
+      ctx.payload.fwd_messages,
+      async msg =>
+        formatBadge(
+          null,
+          await this.extractProfile(msg.from_id, userInfo),
+          msg.date
+        )
+    );
+    console.log(forwardedText);
+    return forwardedText;
   }
 
   async extractMessage(ctx, needChatTitle = false) {
     let text = await this.extractForwardedMessages(ctx);
+    if (text.length > 0) {
+      text += "\n";
+    }
+
     text += ctx.payload.text || "";
 
     return new Message({
