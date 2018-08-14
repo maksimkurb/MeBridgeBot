@@ -64,7 +64,7 @@ export default class VK extends BaseProvider {
     const { updates } = this.vk;
 
     updates.use(async (context, next) => {
-      if (context.is("message") && context.isOutbox) {
+      if (!context.is("message") || context.isOutbox) {
         return;
       }
 
@@ -80,7 +80,7 @@ export default class VK extends BaseProvider {
     updates.hear(/^\/connect/i, this.cmdConnectionToRight);
     updates.hear(/^\/list/i, this.cmdList);
     updates.hear(/^\/disconnect/i, this.cmdDisconnect);
-    updates.on("message", async ctx => {
+    updates.setHearFallbackHandler(async ctx => {
       await this.event("incomingMessage", ctx);
     });
 
@@ -143,6 +143,8 @@ export default class VK extends BaseProvider {
     if (this.titlesCache.peek(providerChatId)) {
       return this.titlesCache.get(providerChatId);
     }
+
+    // To get title of conversation, bot must be administrator
     const resp = this.vk.api.messages.getConversationsById({
       peer_ids: providerChatId
     });
