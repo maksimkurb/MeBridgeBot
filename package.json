@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon --watch src/ --exec babel-node src/index.js",
     "build": "babel src/ --source-maps inline -d lib",
-    "prepack": "npm run build",
+    "prepack": "npm run lint && npm run build",
     "lint": "eslint src/ --ext .js --fix",
     "test": "jest"
   },
