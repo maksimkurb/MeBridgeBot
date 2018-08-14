@@ -75,7 +75,7 @@ class VK extends BaseProvider {
     updates.hear(/^\/connect/i, this.cmdConnectionToRight);
     updates.hear(/^\/list/i, this.cmdList);
     updates.hear(/^\/disconnect/i, this.cmdDisconnect);
-    updates.on("message_new", async ctx => {
+    updates.on("message", async ctx => {
       await this.event("incomingMessage", ctx);
     });
 
