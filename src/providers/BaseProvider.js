@@ -1,20 +1,19 @@
-const Raven = require("raven");
 const {
   createConnection,
   findConnection,
   getChat,
   findConnectionsForChatId
 } = require("../utils");
-const { version } = require("../../package.json");
-const { Message } = require("../message");
-const { Connection, Op } = require("../db");
+import { version } from "../../package.json";
+import { Message } from "../message";
+import { Connection, Op } from "../db";
 
-const CONNECTION_TIMEOUT = 600; // ten minutes
+export const CONNECTION_TIMEOUT = 600; // ten minutes
 const connectionRegexp = /^\/connect(?:@\w+)?\s+\$mbb1\$(\d+)!([a-zA-Z0-9_$]+)/i;
 // use [_ ] because we want to send clickable links (e.g /disconnect_1)
 const disconnectionRegexp = /^\/disconnect(?:@\w+)?[_ ]+(\d+)/i;
 
-class BaseProvider {
+export default class BaseProvider {
   constructor() {
     this.eventListeners = {
       incomingMessage: []
@@ -22,7 +21,6 @@ class BaseProvider {
     this.cmdStart = this.cmdStart.bind(this);
     this.cmdConnectionFromLeft = this.cmdConnectionFromLeft.bind(this);
     this.cmdConnectionToRight = this.cmdConnectionToRight.bind(this);
-    this.cmdSetNickname = this.cmdSetNickname.bind(this);
     this.cmdList = this.cmdList.bind(this);
     this.cmdDisconnect = this.cmdDisconnect.bind(this);
   }
@@ -50,26 +48,6 @@ class BaseProvider {
           cb(this.PROVIDER, msg);
         });
     }
-  }
-
-  captureMessageSending(chatId, msg) {
-    Raven.captureBreadcrumb({
-      data: {
-        toProvider: this.PROVIDER,
-        toChatId: chatId,
-        ...(msg instanceof Message
-          ? {
-              hasAttachments: msg.attachments.length > 0,
-              withAttributes: true
-            }
-          : {
-              withAttributes: false
-            })
-      },
-      message: "Sent message",
-      category: "api",
-      level: "debug"
-    });
   }
 
   async cmdStart(ctx) {
@@ -240,6 +218,3 @@ class BaseProvider {
     }
   }
 }
-
-module.exports = BaseProvider;
-module.exports.CONNECTION_TIMEOUT = CONNECTION_TIMEOUT;

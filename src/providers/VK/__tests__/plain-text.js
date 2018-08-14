@@ -1,6 +1,6 @@
-const { VK } = require("vk-io");
-const VKProvider = require("../index");
-const { Message } = require("../../../message");
+import { VK } from "vk-io";
+import VKProvider from "../index";
+import { Message } from "../../../message";
 
 if (!process.env.VK_TEST_USER_ID) {
   throw new Error(

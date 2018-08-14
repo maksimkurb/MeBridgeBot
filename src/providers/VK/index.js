@@ -1,14 +1,16 @@
-const { VK: VKApi } = require("vk-io");
-const debug = require("debug")("bot:provider:vk");
-const LRU = require("lru");
-const { LRU_CACHE_MAXAGE } = require("../../utils");
+import { VK as VKApi } from "vk-io";
+import createDebug from "debug";
+import LRU from "lru";
+import { LRU_CACHE_MAXAGE } from "../../utils";
 
-const BaseProvider = require("../BaseProvider.js");
-const { Message } = require("../../message");
-const { format, formatBadge } = require("../../format.js");
-const { extractAttachments, sendWithAttachments } = require("./attachments");
+import BaseProvider from "../BaseProvider.js";
+import { Message } from "../../message";
+import { format, formatBadge } from "../../format.js";
+import { extractAttachments, sendWithAttachments } from "./attachments";
 
-class VK extends BaseProvider {
+const debug = createDebug("bot:provider:vk");
+
+export default class VK extends BaseProvider {
   constructor({
     token,
     agent,
@@ -259,5 +261,3 @@ class VK extends BaseProvider {
     });
   }
 }
-
-module.exports = VK;

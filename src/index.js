@@ -1,14 +1,14 @@
-const HttpsProxyAgent = require("https-proxy-agent");
+import HttpsProxyAgent from "https-proxy-agent";
 
-const { dbSync } = require("./db");
-const { getChat, findConnectionsForChatId } = require("./utils");
+import { dbSync } from "./db";
+import { getChat, findConnectionsForChatId } from "./utils";
 
-const VK = require("./providers/VK");
-const Telegram = require("./providers/Telegram");
+import VK from "./providers/VK";
+import Telegram from "./providers/Telegram";
 
 const BOT_NAME = process.env.BOT_NAME || "MeBridgeBot";
 const services = {};
-module.exports = {
+export default {
   BOT_NAME,
   services
 };

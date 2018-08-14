@@ -1,5 +1,6 @@
-const Sequelize = require("sequelize");
-const debug = require("debug")("bot:db");
+import Sequelize from "sequelize";
+import createDebug from "debug";
+const debug = createDebug("bot:db");
 
 const db = new Sequelize("", "", "", {
   dialect: "sqlite",
@@ -7,14 +8,16 @@ const db = new Sequelize("", "", "", {
   operatorsAliases: false,
   logging: false
 });
+export default db;
+export const Op = Sequelize.Op;
 
-const Chat = db.define("chat", {
+export const Chat = db.define("chat", {
   provider: Sequelize.STRING,
   providerChatId: Sequelize.STRING,
   chatTitle: Sequelize.STRING
 });
 
-const Connection = db.define("connection", {
+export const Connection = db.define("connection", {
   // TODO: make use of it
   direction: {
     type: Sequelize.ENUM("TWOWAY", "TORIGHT", "TOLEFT", "NONE"),
@@ -26,14 +29,8 @@ const Connection = db.define("connection", {
 Connection.belongsTo(Chat, { as: "leftChat", foreignKey: "leftChatId" });
 Connection.belongsTo(Chat, { as: "rightChat", foreignKey: "rightChatId" });
 
-async function dbSync() {
+export async function dbSync() {
   await Chat.sync();
   await Connection.sync();
   debug("DB synced");
 }
-
-module.exports = db;
-module.exports.Op = Sequelize.Op;
-module.exports.Chat = Chat;
-module.exports.Connection = Connection;
-module.exports.dbSync = dbSync;

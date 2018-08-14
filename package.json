@@ -4,12 +4,15 @@
   "description": "",
   "main": "lib/index.js",
   "scripts": {
-    "start": "nodemon --watch src/ --exec node src/index.js",
+    "start": "nodemon --watch src/ --exec babel-node src/index.js",
+    "build": "babel src/ --source-maps inline -d lib",
+    "prepack": "npm run build",
     "lint": "eslint src/ --ext .js --fix",
     "test": "jest"
   },
   "engines": {
-    "node": ">=6.2.0"
+    "node": ">=6.2.0",
+    "npm": ">=4.0.0"
   },
   "husky": {
     "hooks": {
@@ -23,7 +26,7 @@
     ]
   },
   "bin": {
-    "me-bridge-bot": "./src/run.js"
+    "me-bridge-bot": "./lib/run.js"
   },
   "repository": {
     "type": "git",
@@ -55,8 +58,11 @@
   },
   "devDependencies": {
     "@types/jest": "^23.3.1",
+    "babel-cli": "^6.26.0",
     "babel-core": "^6.26.3",
     "babel-jest": "^23.4.2",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-stage-3": "^6.24.1",
     "eslint": "^5.3.0",
     "eslint-config-prettier": "^2.9.0",
     "eslint-plugin-prettier": "^2.6.2",

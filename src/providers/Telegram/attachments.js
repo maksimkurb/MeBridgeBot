@@ -1,11 +1,11 @@
-const sharp = require("sharp");
-const mime = require("mime-types");
-const fetch = require("node-fetch");
+import sharp from "sharp";
+import mime from "mime-types";
+import fetch from "node-fetch";
 
-const { Attachment, AttachmentTypes } = require("../../message");
-const { format } = require("../../format.js");
+import { Attachment, AttachmentTypes } from "../../message";
+import { format } from "../../format.js";
 
-async function extractAttachments(ctx, msg) {
+export async function extractAttachments(ctx, msg) {
   const attachments = [];
 
   if (msg.audio) {
@@ -170,7 +170,7 @@ async function downloadToBuffer(url) {
   return fetch(url).then(res => res.buffer());
 }
 
-async function sendWithAttachments(chatId, msg, tg) {
+export async function sendWithAttachments(chatId, msg, tg) {
   await Promise.all(
     msg.attachments.map(async at => {
       const filename =
@@ -312,8 +312,3 @@ async function sendWithAttachments(chatId, msg, tg) {
     await tg.sendMessage(chatId, format(msg));
   }
 }
-
-module.exports = {
-  extractAttachments,
-  sendWithAttachments
-};
