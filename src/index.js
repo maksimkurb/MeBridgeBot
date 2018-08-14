@@ -1,5 +1,4 @@
 const HttpsProxyAgent = require("https-proxy-agent");
-const Raven = require("raven");
 
 const { dbSync } = require("./db");
 const { getChat, findConnectionsForChatId } = require("./utils");
@@ -13,7 +12,6 @@ module.exports = {
   BOT_NAME,
   services
 };
-Raven.config(process.env.SENTRY_DSN || null).install();
 
 function getHTTPSAgent(proxy) {
   if (proxy) {
@@ -24,9 +22,7 @@ function getHTTPSAgent(proxy) {
   return {};
 }
 
-Raven.context(async () => {
-  await dbSync();
-
+dbSync().then(() => {
   const vkOpts = {
     token: process.env.VK_TOKEN,
     lang: process.env.VK_LANG,
@@ -54,36 +50,24 @@ Raven.context(async () => {
   console.log("Bot is running...");
 
   async function onMessage(provider, msg) {
-    Raven.context(async () => {
-      const chat = await getChat(provider, msg.providerChatId);
-      const connections = await findConnectionsForChatId(chat.id);
-      Raven.captureBreadcrumb({
-        data: {
-          fromProvider: provider,
-          fromChatId: msg.providerChatId,
-          hasAttachments: msg.attachments.length > 0
-        },
-        message: "Received message",
-        category: "events",
-        level: "debug"
-      });
-      await Promise.all(
-        connections.map(async con => {
-          const message = msg.clone();
-          let resultChat;
-          if (con.leftChatId === chat.id) {
-            resultChat = await con.getRightChat();
-          } else {
-            resultChat = await con.getLeftChat();
-          }
+    const chat = await getChat(provider, msg.providerChatId);
+    const connections = await findConnectionsForChatId(chat.id);
+    await Promise.all(
+      connections.map(async con => {
+        const message = msg.clone();
+        let resultChat;
+        if (con.leftChatId === chat.id) {
+          resultChat = await con.getRightChat();
+        } else {
+          resultChat = await con.getLeftChat();
+        }
 
-          await services[resultChat.provider].sendMessage(
-            resultChat.providerChatId,
-            message
-          );
-        })
-      );
-    });
+        await services[resultChat.provider].sendMessage(
+          resultChat.providerChatId,
+          message
+        );
+      })
+    );
   }
 
   enabledServices.forEach(svc => {

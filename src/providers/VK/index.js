@@ -1,7 +1,6 @@
 const { VK: VKApi } = require("vk-io");
 const debug = require("debug")("bot:provider:vk");
 const LRU = require("lru");
-const Raven = require("raven");
 const { LRU_CACHE_MAXAGE } = require("../../utils");
 
 const BaseProvider = require("../BaseProvider.js");
@@ -114,7 +113,7 @@ class VK extends BaseProvider {
         fields: "domain"
       });
     } catch (e) {
-      Raven.captureException(e);
+      debug(e);
     }
     if (res) {
       res.forEach(user => {
@@ -244,7 +243,6 @@ class VK extends BaseProvider {
   }
 
   async sendMessage(chatId, msg) {
-    this.captureMessageSending(chatId, msg);
     if (msg instanceof Message) {
       if (!msg.attachments.length) {
         return this.vk.api.messages.send({

@@ -104,7 +104,6 @@ class Telegram extends BaseProvider {
   }
 
   async sendMessage(providerChatId, msg) {
-    this.captureMessageSending(providerChatId, msg);
     if (msg instanceof Message) {
       // Just forward if it is from TG
       if (msg.provider === "tg") {
