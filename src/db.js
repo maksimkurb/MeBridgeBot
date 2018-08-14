@@ -24,7 +24,8 @@ const Connection = db.define("connection", {
 });
 
 const User = db.define("connection", {
-  providerUserId: Sequelize.STRING
+  providerUserId: Sequelize.STRING,
+  nickname: Sequelize.STRING
 });
 
 Connection.belongsTo(Chat, { as: "leftChat", foreignKey: "leftChatId" });
