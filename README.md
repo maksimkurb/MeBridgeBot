@@ -8,3 +8,17 @@ Enter this special command in another chat (it looks like `/connect $mbb1$1!9d8x
 
 ## Screenshot
 ![Screenshot](https://raw.githubusercontent.com/maksimkurb/MeBridgeBot/master/docs/screenshot.jpg)
+
+## Environment variables
+```
+VK_TOKEN=b0****76 # VK token (required)
+VK_POLLING_GROUP_ID=1******7 # VK polling group ID (required for community bot)
+VK_PROXY=http://10.11.22.33:3128 # VK HTTP Proxy
+
+TG_TOKEN=1***************Q # Telegram token (required)
+TG_API_ROOT=https://tg.reverse-proxy.com # Telegram bot api root (nginx reverse proxy)
+TG_PROXY=http://10.11.22.33:3128 # Telegram HTTP Proxy
+
+DEBUG=bot*,vk-io*,telegraf* # (show debug information)
+WELCOME_MESSAGE=Hello. This bot is sponsored by... # Welcome message. This will be sent to /start command after bot info
+```
