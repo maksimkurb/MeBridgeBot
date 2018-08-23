@@ -1,4 +1,5 @@
 import Telegraf from "telegraf";
+import createDebug from "debug";
 import LRU from "lru";
 import { LRU_CACHE_MAXAGE } from "../../utils";
 
@@ -6,6 +7,8 @@ import BaseProvider from "../BaseProvider.js";
 import { format, formatBadge } from "../../format.js";
 import { Message, AttachmentTypes } from "../../message.js";
 import { extractAttachments, sendWithAttachments } from "./attachments";
+
+const debug = createDebug("bot:provider:tg");
 
 export default class Telegram extends BaseProvider {
   constructor(token, options) {
@@ -18,6 +21,13 @@ export default class Telegram extends BaseProvider {
 
     this.PROVIDER = "tg";
     this.api = new Telegraf(token, options);
+    this.api.use(async (context, next) => {
+      try {
+        await next();
+      } catch (error) {
+        debug("Error: %O", error);
+      }
+    });
     this.api.command("start", this.cmdStart);
     this.api.command("token", this.cmdConnectionFromLeft);
     this.api.command("connect", this.cmdConnectionToRight);
