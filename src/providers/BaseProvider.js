@@ -66,6 +66,12 @@ export default class BaseProvider {
         `/version ${version}`
       ].join("\n")
     );
+    if (
+      process.env.WELCOME_MESSAGE &&
+      typeof process.env.WELCOME_MESSAGE === "string"
+    ) {
+      this.sendMessage(msg.providerChatId, process.env.WELCOME_MESSAGE);
+    }
   }
 
   /**

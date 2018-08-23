@@ -94,6 +94,17 @@ export default class Telegram extends BaseProvider {
     let text = this.extractMessageReply(msg);
     text += msg.text || msg.caption || "";
 
+    let attachments = [];
+    try {
+      attachments = await extractAttachments(ctx, msg);
+    } catch (e) {
+      debug("Could not extract attachments: %O", e);
+      this.sendMessage(
+        msg.chat.id,
+        `🔹 Could not get attachment: ${e.message}`
+      );
+    }
+
     return new Message({
       provider: this.PROVIDER,
       providerChatId: msg.chat.id,
@@ -108,7 +119,7 @@ export default class Telegram extends BaseProvider {
         id: msg.message_id,
         mediaGroup: msg.media_group_id
       },
-      attachments: await extractAttachments(ctx, msg),
+      attachments,
       date: msg.date
     });
   }

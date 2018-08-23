@@ -1,9 +1,10 @@
-import FormData from "form-data";
 import fetch from "node-fetch";
+import createDebug from "debug";
 import mime from "mime-types";
 import { Attachment, AttachmentTypes } from "../../message";
 import { format } from "../../format.js";
-import { resolve } from "url";
+
+const debug = createDebug("bot:provider:vk:attachments");
 
 export async function extractAttachments(ctx, msg) {
   const attachments = [];
@@ -142,11 +143,24 @@ export async function extractAttachments(ctx, msg) {
   return attachments;
 }
 
+const isURL = /^https?:\/\//i;
+async function downloadToBuffer(url) {
+  return fetch(url).then(res => res.buffer());
+}
 async function uploadPhoto({ vk, providerChatId, payload }) {
-  const savedPhoto = await vk.upload.messagePhoto({
-    source: payload,
-    peer_id: providerChatId
-  });
+  let savedPhoto;
+  try {
+    let buffer = payload;
+    if (typeof payload === "string" && isURL.test(payload)) {
+      buffer = await downloadToBuffer(payload);
+    }
+    savedPhoto = await vk.upload.messagePhoto({
+      source: buffer,
+      peer_id: providerChatId
+    });
+  } catch (e) {
+    debug("Could not upload photo to VK: %O", e);
+  }
   return savedPhoto.toString();
 }
 async function uploadDoc({
@@ -158,16 +172,29 @@ async function uploadDoc({
   payload,
   type = "doc"
 }) {
-  const savedDoc = await vk.upload.messageDocument({
+  const config = {
     peer_id: providerChatId,
-    source: {
-      value: payload,
-      filename,
-      contentType: mimeType
-    },
     type,
     title
-  });
+  };
+  let savedDoc;
+  try {
+    let buffer = payload;
+    if (typeof payload === "string" && isURL.test(payload)) {
+      buffer = await downloadToBuffer(payload);
+    }
+    savedDoc = await vk.upload.messageDocument({
+      ...config,
+      source: {
+        value: buffer,
+        filename,
+        contentType: mimeType
+      }
+    });
+  } catch (e) {
+    debug("Could not upload document to VK: %O", e);
+  }
+
   return savedDoc.toString();
 }
 

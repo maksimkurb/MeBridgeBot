@@ -46,6 +46,7 @@ export default class VK extends BaseProvider {
       apiMode: "parallel_selected",
       apiLimit: 5,
       apiAttemts: 10,
+      uploadTimeout: 60000,
       apiExecuteMethods: [
         "messages.getConversationsById",
         "users.get",
@@ -71,8 +72,7 @@ export default class VK extends BaseProvider {
       try {
         await next();
       } catch (error) {
-        console.error("Error:", error);
-        debug("%O", error);
+        debug("Error: %O", error);
       }
     });
     updates.hear(/^\/start/i, this.cmdStart);
