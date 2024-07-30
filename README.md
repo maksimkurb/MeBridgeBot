@@ -1,3 +1,7 @@
+## ⚠️📦 Repo is archived
+
+Please consider using [BridgeBotNext](https://github.com/maksimkurb/BridgeBotNext) instead
+
 # MeBridgeBot
 Make a bridge between VK and Telegram groups!
 
